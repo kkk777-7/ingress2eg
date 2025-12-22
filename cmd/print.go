@@ -300,7 +300,7 @@ func newPrintCommand() *cobra.Command {
 	// generated from Ingress resources.
 	cmd := &cobra.Command{
 		Use:   "print",
-		Short: "Prints Gateway API objects generated from ingress and provider-specific resources.",
+		Short: "Prints Gateway API objects and Envoy Gateway CRD generated from ingress and provider-specific resources.",
 		RunE:  pr.PrintGatewayAPIObjects,
 	}
 
