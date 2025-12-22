@@ -110,6 +110,7 @@ func Test_ToIR(t *testing.T) {
 								},
 								Hostnames: []gwapiv1.Hostname{"example.com"},
 								Rules: []gwapiv1.HTTPRouteRule{{
+									Name: ptr.To(gwapiv1.SectionName("rule-prefix-foo")),
 									Matches: []gwapiv1.HTTPRouteMatch{{
 										Path: &gwapiv1.HTTPPathMatch{
 											Type:  &gPathPrefix,
@@ -203,6 +204,7 @@ func Test_ToIR(t *testing.T) {
 								},
 								Hostnames: []gwapiv1.Hostname{"example.com"},
 								Rules: []gwapiv1.HTTPRouteRule{{
+									Name: ptr.To(gwapiv1.SectionName("rule-prefix-foo")),
 									Matches: []gwapiv1.HTTPRouteMatch{{
 										Path: &gwapiv1.HTTPPathMatch{
 											Type:  &gPathPrefix,
@@ -289,6 +291,7 @@ func Test_ToIR(t *testing.T) {
 								},
 								Hostnames: []gwapiv1.Hostname{"example.net"},
 								Rules: []gwapiv1.HTTPRouteRule{{
+									Name: ptr.To(gwapiv1.SectionName("rule-exact-bar")),
 									Matches: []gwapiv1.HTTPRouteMatch{{
 										Path: &gwapiv1.HTTPPathMatch{
 											Type:  &gExact,
@@ -394,6 +397,7 @@ func Test_ToIR(t *testing.T) {
 								},
 								Hostnames: []gwapiv1.Hostname{"example.com"},
 								Rules: []gwapiv1.HTTPRouteRule{{
+									Name: ptr.To(gwapiv1.SectionName("rule-prefix-foo")),
 									Matches: []gwapiv1.HTTPRouteMatch{{
 										Path: &gwapiv1.HTTPPathMatch{
 											Type:  &gPathPrefix,

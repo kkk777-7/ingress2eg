@@ -109,6 +109,34 @@ func RouteName(ingressName, host string) string {
 	return fmt.Sprintf("%s-%s", ingressName, NameFromHost(host))
 }
 
+// RuleNameFromPathMatch generates a valid DNS label name for an HTTPRoute rule
+// based on the path type and path value.
+func RuleNameFromPathMatch(pathType, pathValue string) string {
+	// Sanitize path type to lowercase
+	sanitizedType := strings.ToLower(pathType)
+
+	// Sanitize path value
+	sanitizedPath := pathValue
+	switch sanitizedPath {
+	case "":
+		sanitizedPath = "empty"
+	case "/":
+		sanitizedPath = "root"
+	default:
+		// Replace all non-alphanumeric characters with dashes
+		reg := regexp.MustCompile("[^a-zA-Z0-9]+")
+		sanitizedPath = reg.ReplaceAllString(sanitizedPath, "-")
+		// Remove leading/trailing dashes
+		sanitizedPath = strings.Trim(sanitizedPath, "-")
+		// Ensure it starts with alphanumeric
+		if sanitizedPath != "" && !regexp.MustCompile("^[a-zA-Z0-9]").MatchString(sanitizedPath) {
+			sanitizedPath = "path-" + sanitizedPath
+		}
+	}
+
+	return fmt.Sprintf("rule-%s-%s", sanitizedType, sanitizedPath)
+}
+
 func ToBackendRef(namespace string, ib networkingv1.IngressBackend, servicePorts map[types.NamespacedName]map[string]int32, path *field.Path) (*gwapiv1.BackendRef, *field.Error) {
 	if ib.Service != nil {
 		if ib.Service.Port.Name == "" {

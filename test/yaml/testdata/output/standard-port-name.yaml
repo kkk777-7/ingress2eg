@@ -1,0 +1,43 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: service.example.com
+    name: service-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: ingress-port-name-service-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - service.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: multi-port-service
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /http
+    name: rule-prefix-http
+  - backendRefs:
+    - name: multi-port-service
+      port: 8443
+    matches:
+    - path:
+        type: PathPrefix
+        value: /https
+    name: rule-prefix-https
+status:
+  parents: []
