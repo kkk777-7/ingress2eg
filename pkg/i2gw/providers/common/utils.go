@@ -1,0 +1,340 @@
+/*
+Copyright 2023 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package common
+
+import (
+	"fmt"
+	"regexp"
+	"strings"
+
+	apiv1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
+)
+
+func GetIngressClass(ingress networkingv1.Ingress) string {
+	var ingressClass string
+
+	if ingress.Spec.IngressClassName != nil && *ingress.Spec.IngressClassName != "" {
+		ingressClass = *ingress.Spec.IngressClassName
+	} else if _, ok := ingress.Annotations[networkingv1beta1.AnnotationIngressClass]; ok {
+		ingressClass = ingress.Annotations[networkingv1beta1.AnnotationIngressClass]
+	} else {
+		ingressClass = ""
+	}
+
+	return ingressClass
+}
+
+type IngressRuleGroup struct {
+	Namespace    string
+	Name         string
+	IngressClass string
+	Host         string
+	TLS          []networkingv1.IngressTLS
+	Rules        []Rule
+}
+
+type Rule struct {
+	Ingress     networkingv1.Ingress
+	IngressRule networkingv1.IngressRule
+}
+
+func GetRuleGroups(ingresses []networkingv1.Ingress) map[string]IngressRuleGroup {
+	ruleGroups := make(map[string]IngressRuleGroup)
+
+	for _, ingress := range ingresses {
+		ingressClass := GetIngressClass(ingress)
+
+		for _, rule := range ingress.Spec.Rules {
+
+			rgKey := fmt.Sprintf("%s/%s/%s", ingress.Namespace, ingressClass, rule.Host)
+			rg, ok := ruleGroups[rgKey]
+			if !ok {
+				rg = IngressRuleGroup{
+					Namespace:    ingress.Namespace,
+					Name:         ingress.Name,
+					IngressClass: ingressClass,
+					Host:         rule.Host,
+				}
+				ruleGroups[rgKey] = rg
+			}
+			rg.TLS = append(rg.TLS, ingress.Spec.TLS...)
+			rg.Rules = append(rg.Rules, Rule{
+				Ingress:     ingress,
+				IngressRule: rule,
+			})
+
+			ruleGroups[rgKey] = rg
+		}
+
+	}
+
+	return ruleGroups
+}
+
+func NameFromHost(host string) string {
+	// replace all special chars with -
+	reg, _ := regexp.Compile("[^a-zA-Z0-9]+")
+	step1 := reg.ReplaceAllString(host, "-")
+	// remove all - at start of string
+	reg2, _ := regexp.Compile("^[^a-zA-Z0-9]+")
+	step2 := reg2.ReplaceAllString(step1, "")
+	// if nothing left, return "all-hosts"
+	if len(host) == 0 || host == "*" {
+		return "all-hosts"
+	}
+	return step2
+}
+
+func RouteName(ingressName, host string) string {
+	return fmt.Sprintf("%s-%s", ingressName, NameFromHost(host))
+}
+
+func ToBackendRef(namespace string, ib networkingv1.IngressBackend, servicePorts map[types.NamespacedName]map[string]int32, path *field.Path) (*gwapiv1.BackendRef, *field.Error) {
+	if ib.Service != nil {
+		if ib.Service.Port.Name == "" {
+			return &gwapiv1.BackendRef{
+				BackendObjectReference: gwapiv1.BackendObjectReference{
+					Name: gwapiv1.ObjectName(ib.Service.Name),
+					Port: &ib.Service.Port.Number,
+				},
+			}, nil
+		}
+
+		portNumber, ok := servicePorts[types.NamespacedName{Namespace: namespace, Name: ib.Service.Name}][ib.Service.Port.Name]
+		if !ok {
+			fieldPath := path.Child("service", "port")
+			return nil, field.Invalid(fieldPath, "name", fmt.Sprintf("cannot find port with name %s in service %s", ib.Service.Port.Name, ib.Service.Name))
+		}
+
+		return &gwapiv1.BackendRef{
+			BackendObjectReference: gwapiv1.BackendObjectReference{
+				Name: gwapiv1.ObjectName(ib.Service.Name),
+				Port: &portNumber,
+			},
+		}, nil
+	}
+	return &gwapiv1.BackendRef{
+		BackendObjectReference: gwapiv1.BackendObjectReference{
+			Group: (*gwapiv1.Group)(ib.Resource.APIGroup),
+			Kind:  (*gwapiv1.Kind)(&ib.Resource.Kind),
+			Name:  gwapiv1.ObjectName(ib.Resource.Name),
+		},
+	}, nil
+}
+
+type orderedIngressPathsByMatchKey struct {
+	keys []pathMatchKey
+	data map[pathMatchKey][]ingressPath
+}
+
+func groupIngressPathsByMatchKey(rules []ingressRule) orderedIngressPathsByMatchKey {
+	// we track the keys in an additional slice in order to preserve the rules order
+	ingressPathsByMatchKey := orderedIngressPathsByMatchKey{
+		keys: []pathMatchKey{},
+		data: map[pathMatchKey][]ingressPath{},
+	}
+
+	for i, ir := range rules {
+		for j, path := range ir.rule.HTTP.Paths {
+			ip := ingressPath{
+				ruleIdx:       i,
+				pathIdx:       j,
+				ruleType:      "http",
+				path:          path,
+				sourceIngress: ir.ingress,
+			}
+			pmKey := getPathMatchKey(ip)
+			if _, ok := ingressPathsByMatchKey.data[pmKey]; !ok {
+				ingressPathsByMatchKey.keys = append(ingressPathsByMatchKey.keys, pmKey)
+			}
+			ingressPathsByMatchKey.data[pmKey] = append(ingressPathsByMatchKey.data[pmKey], ip)
+		}
+	}
+	return ingressPathsByMatchKey
+}
+
+func GroupServicePortsByPortName(services map[types.NamespacedName]*apiv1.Service) map[types.NamespacedName]map[string]int32 {
+	servicePorts := map[types.NamespacedName]map[string]int32{}
+
+	for namespacedName, service := range services {
+		servicePorts[namespacedName] = map[string]int32{}
+		for _, port := range service.Spec.Ports {
+			servicePorts[namespacedName][port.Name] = port.Port
+		}
+	}
+
+	return servicePorts
+}
+
+// ParseGRPCServiceMethod parses gRPC service and method from HTTP path
+func ParseGRPCServiceMethod(path string) (service, method string) {
+	path = strings.TrimPrefix(path, "/")
+
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) >= 1 && parts[0] != "" {
+		service = parts[0]
+	}
+	if len(parts) >= 2 && parts[1] != "" {
+		method = parts[1]
+	}
+
+	return service, method
+}
+
+// GRPCFilterConversionResult holds the result of converting HTTP filters to gRPC filters
+type GRPCFilterConversionResult struct {
+	GRPCFilters      []gwapiv1.GRPCRouteFilter
+	UnsupportedTypes []gwapiv1.HTTPRouteFilterType
+}
+
+// ConvertHTTPFiltersToGRPCFilters converts a list of HTTPRoute filters to GRPCRoute filters
+// Returns both the converted filters and a list of unsupported filter types for notification
+func ConvertHTTPFiltersToGRPCFilters(httpFilters []gwapiv1.HTTPRouteFilter) GRPCFilterConversionResult {
+	if len(httpFilters) == 0 {
+		return GRPCFilterConversionResult{
+			GRPCFilters:      []gwapiv1.GRPCRouteFilter{},
+			UnsupportedTypes: []gwapiv1.HTTPRouteFilterType{},
+		}
+	}
+
+	var grpcFilters []gwapiv1.GRPCRouteFilter
+	var unsupportedTypes []gwapiv1.HTTPRouteFilterType
+
+	for _, httpFilter := range httpFilters {
+		switch httpFilter.Type {
+		case gwapiv1.HTTPRouteFilterRequestHeaderModifier:
+			if httpFilter.RequestHeaderModifier != nil {
+				grpcFilter := gwapiv1.GRPCRouteFilter{
+					Type: gwapiv1.GRPCRouteFilterRequestHeaderModifier,
+					RequestHeaderModifier: &gwapiv1.HTTPHeaderFilter{
+						Set:    httpFilter.RequestHeaderModifier.Set,
+						Add:    httpFilter.RequestHeaderModifier.Add,
+						Remove: httpFilter.RequestHeaderModifier.Remove,
+					},
+				}
+				grpcFilters = append(grpcFilters, grpcFilter)
+			}
+
+		case gwapiv1.HTTPRouteFilterResponseHeaderModifier:
+			if httpFilter.ResponseHeaderModifier != nil {
+				grpcFilter := gwapiv1.GRPCRouteFilter{
+					Type: gwapiv1.GRPCRouteFilterResponseHeaderModifier,
+					ResponseHeaderModifier: &gwapiv1.HTTPHeaderFilter{
+						Set:    httpFilter.ResponseHeaderModifier.Set,
+						Add:    httpFilter.ResponseHeaderModifier.Add,
+						Remove: httpFilter.ResponseHeaderModifier.Remove,
+					},
+				}
+				grpcFilters = append(grpcFilters, grpcFilter)
+			}
+
+		// These HTTP filter types are not applicable to gRPC
+		case gwapiv1.HTTPRouteFilterRequestRedirect:
+			unsupportedTypes = append(unsupportedTypes, httpFilter.Type)
+		case gwapiv1.HTTPRouteFilterURLRewrite:
+			unsupportedTypes = append(unsupportedTypes, httpFilter.Type)
+		case gwapiv1.HTTPRouteFilterRequestMirror:
+			unsupportedTypes = append(unsupportedTypes, httpFilter.Type)
+		case gwapiv1.HTTPRouteFilterExtensionRef:
+			unsupportedTypes = append(unsupportedTypes, httpFilter.Type)
+		case gwapiv1.HTTPRouteFilterCORS:
+			unsupportedTypes = append(unsupportedTypes, httpFilter.Type)
+		case gwapiv1.HTTPRouteFilterExternalAuth:
+			unsupportedTypes = append(unsupportedTypes, httpFilter.Type)
+		default:
+			unsupportedTypes = append(unsupportedTypes, httpFilter.Type)
+		}
+	}
+
+	// Ensure we return empty slices instead of nil
+	if grpcFilters == nil {
+		grpcFilters = []gwapiv1.GRPCRouteFilter{}
+	}
+	if unsupportedTypes == nil {
+		unsupportedTypes = []gwapiv1.HTTPRouteFilterType{}
+	}
+
+	return GRPCFilterConversionResult{
+		GRPCFilters:      grpcFilters,
+		UnsupportedTypes: unsupportedTypes,
+	}
+}
+
+// RemoveGRPCRulesFromHTTPRoute removes HTTPRoute rules that target gRPC services.
+// When route rules are converted from HTTP to gRPC routes, this function cleans up the original
+// HTTPRoute by removing backend references to those gRPC services, preventing duplicate routing.
+func RemoveGRPCRulesFromHTTPRoute(httpRoute *gwapiv1.HTTPRoute, grpcServiceSet map[string]struct{}) []gwapiv1.HTTPRouteRule {
+	var remainingRules []gwapiv1.HTTPRouteRule
+
+	for _, rule := range httpRoute.Spec.Rules {
+		var remainingBackendRefs []gwapiv1.HTTPBackendRef
+
+		// Check each backend ref in the rule
+		for _, backendRef := range rule.BackendRefs {
+			serviceName := string(backendRef.Name)
+			// Only keep backend refs that are NOT gRPC services
+			if _, isGRPCService := grpcServiceSet[serviceName]; !isGRPCService {
+				remainingBackendRefs = append(remainingBackendRefs, backendRef)
+			}
+		}
+
+		// If any backend refs remain, keep the rule
+		if len(remainingBackendRefs) > 0 {
+			rule.BackendRefs = remainingBackendRefs
+			remainingRules = append(remainingRules, rule)
+		}
+	}
+
+	return remainingRules
+}
+
+// CreateBackendTLSPolicy creates a BackendTLSPolicy for the given service
+func CreateBackendTLSPolicy(namespace, policyName, serviceName string) gwapiv1.BackendTLSPolicy {
+	// TODO: Migrate BackendTLSPolicy from gwapiv1alpha3 to gwapiv1 for Gateway API 1.4
+	// See: https://github.com/kubernetes-sigs/ingress2gateway/issues/236
+	return gwapiv1.BackendTLSPolicy{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: gwapiv1.GroupVersion.String(),
+			Kind:       "BackendTLSPolicy",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      policyName,
+			Namespace: namespace,
+		},
+		Spec: gwapiv1.BackendTLSPolicySpec{
+			TargetRefs: []gwapiv1.LocalPolicyTargetReferenceWithSectionName{
+				{
+					LocalPolicyTargetReference: gwapiv1.LocalPolicyTargetReference{
+						Group: "", // Core group
+						Kind:  "Service",
+						Name:  gwapiv1.ObjectName(serviceName),
+					},
+				},
+			},
+			Validation: gwapiv1.BackendTLSPolicyValidation{
+				// Note: WellKnownCACertificates and Hostname fields are intentionally left empty
+				// These fields must be manually configured based on your backend service's TLS setup
+			},
+		},
+	}
+}

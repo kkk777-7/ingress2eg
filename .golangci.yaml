@@ -1,0 +1,56 @@
+version: "2"
+
+run:
+  timeout: 10m
+  issues-exit-code: 1
+  tests: false
+  modules-download-mode: readonly
+  allow-parallel-runners: false
+
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/kkk777-7/ingress2eg)
+    gofmt:
+      simplify: true
+linters:
+  enable:
+    - revive
+    - govet
+    - misspell
+    - gosec
+    - staticcheck
+    - ineffassign
+    - unparam
+    - errcheck
+    - errorlint
+    - dupl
+    - unconvert
+    - unused
+  settings:
+    misspell:
+      locale: US
+    govet:
+      disable:
+        - shadow
+        - fieldalignment
+      enable-all: true
+    gosec:
+      excludes:
+        - G104
+    revive:
+      rules:
+        - name: package-comments
+          disabled: true
+        - name: exported
+          disabled: true
+        - name: unexported-return
+          disabled: false
