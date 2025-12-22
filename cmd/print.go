@@ -35,7 +35,7 @@ import (
 	// Call init for notifications
 	_ "github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
 	// Call init for emitters
-	// _ "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitters/envoygateway"
+	_ "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitters/envoygateway"
 	_ "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitters/standard"
 )
 
@@ -69,7 +69,7 @@ type PrintRunner struct {
 	providerSpecificFlags map[string]*string
 
 	// emitter indicates which emitter is used to generate the Gateway API resources.
-	// Defaults to "standard".
+	// Defaults to "envoy-gateway".
 	emitter string
 }
 
@@ -318,10 +318,10 @@ func newPrintCommand() *cobra.Command {
 		`If present, list the requested object(s) across all namespaces. Namespace in current context is ignored even
 if specified with --namespace.`)
 
-	cmd.Flags().StringVar(&pr.emitter, "emitter", "standard",
-		fmt.Sprintf("If present, the tool will try to use the specified emitter to generate the Gateway API resources, supported values are %v. The `standard` emitter will only output Gateway API", i2gw.GetSupportedEmitters()))
+	cmd.Flags().StringVar(&pr.emitter, "emitter", "envoy-gateway",
+		fmt.Sprintf("If present, the tool will try to use the specified emitter to generate the Gateway API resources, supported values are %v.", i2gw.GetSupportedEmitters()))
 
-	cmd.Flags().StringSliceVar(&pr.providers, "providers", []string{},
+	cmd.Flags().StringSliceVar(&pr.providers, "providers", []string{"ingress-nginx"},
 		fmt.Sprintf("If present, the tool will try to convert only resources related to the specified providers, supported values are %v.", i2gw.GetSupportedProviders()))
 
 	pr.providerSpecificFlags = make(map[string]*string)
