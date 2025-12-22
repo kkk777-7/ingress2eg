@@ -22,6 +22,14 @@ vet:  ## Run go vet against code
 test: vet  ## Run go test against code
 	go test -race -cover ./cmd/...
 
+.PHONY: yaml-test
+yaml-test: vet  ## Run yaml tests
+	go test -v ./test/yaml/...
+
+.PHONY: yaml-test-override
+yaml-test-override: vet  ## Run yaml tests - override golden files
+	go test -v ./test/yaml/... -override
+
 .PHONY: build
 build: vet  ## Build the binary
 	go build $(LDFLAGS) -o ingress2eg .
