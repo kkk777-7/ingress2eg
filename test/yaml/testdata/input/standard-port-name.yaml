@@ -1,0 +1,43 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-port-name
+  namespace: namespace1
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: service.example.com
+    http:
+      paths:
+      - path: /http
+        pathType: Prefix
+        backend:
+          service:
+            name: multi-port-service
+            port:
+              name: http
+      - path: /https
+        pathType: Prefix
+        backend:
+          service:
+            name: multi-port-service
+            port:
+              name: https
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-port-service
+  namespace: namespace1
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: https
+    port: 8443
+    targetPort: 8443
+  - name: metrics
+    port: 9090
+    targetPort: 9090

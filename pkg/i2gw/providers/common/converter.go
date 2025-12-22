@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
@@ -265,6 +266,7 @@ func (a *ingressAggregator) toHTTPRoutesAndGateways(options i2gw.ProviderImpleme
 			errors = append(errors, err)
 		} else {
 			httpRoute.Spec.Rules = append(httpRoute.Spec.Rules, gwapiv1.HTTPRouteRule{
+				Name:        ptr.To(gwapiv1.SectionName("rule-default-backend")),
 				BackendRefs: []gwapiv1.HTTPBackendRef{{BackendRef: *backendRef}},
 			})
 		}
@@ -368,7 +370,16 @@ func (rg *ingressRuleGroup) toHTTPRoute(servicePorts map[types.NamespacedName]ma
 			errors = append(errors, err)
 			continue
 		}
+
+		// Generate rule name from path type and path value
+		var pathType string
+		if path.path.PathType != nil {
+			pathType = string(*path.path.PathType)
+		}
+		ruleName := RuleNameFromPathMatch(pathType, path.path.Path)
+
 		hrRule := gwapiv1.HTTPRouteRule{
+			Name:    (*gwapiv1.SectionName)(&ruleName),
 			Matches: []gwapiv1.HTTPRouteMatch{*match},
 		}
 
