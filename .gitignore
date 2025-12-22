@@ -7,6 +7,8 @@
 *.dll
 *.so
 *.dylib
+**/bin
+ingress2eg
 
 # Test binary, built with `go test -c`
 *.test
