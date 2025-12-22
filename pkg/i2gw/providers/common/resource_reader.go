@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	apiv1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -53,7 +54,7 @@ func ReadIngressesFromCluster(ctx context.Context, client client.Client, ingress
 }
 
 func ReadIngressesFromFile(filename, namespace string, ingressClasses sets.Set[string]) (map[types.NamespacedName]*networkingv1.Ingress, error) {
-	stream, err := os.ReadFile(filename)
+	stream, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %v: %w", filename, err)
 	}
@@ -77,7 +78,6 @@ func ReadIngressesFromFile(filename, namespace string, ingressClasses sets.Set[s
 			}
 			ingresses[types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}] = &ingress
 		}
-
 	}
 	return ingresses, nil
 }
@@ -98,7 +98,7 @@ func ReadServicesFromCluster(ctx context.Context, client client.Client) (map[typ
 }
 
 func ReadServicesFromFile(filename, namespace string) (map[types.NamespacedName]*apiv1.Service, error) {
-	stream, err := os.ReadFile(filename)
+	stream, err := os.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file %v: %w", filename, err)
 	}
@@ -119,7 +119,6 @@ func ReadServicesFromFile(filename, namespace string) (map[types.NamespacedName]
 			}
 			services[types.NamespacedName{Namespace: service.Namespace, Name: service.Name}] = &service
 		}
-
 	}
 	return services, nil
 }

@@ -17,13 +17,14 @@ limitations under the License.
 package utils
 
 import (
-	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
-	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 )
 
 type uniqueBackendRefsKey struct {
@@ -36,7 +37,6 @@ type uniqueBackendRefsKey struct {
 
 // removeBackendRefsDuplicates removes duplicate backendRefs from a list of backendRefs.
 func removeBackendRefsDuplicates(backendRefs []gwapiv1.HTTPBackendRef) []gwapiv1.HTTPBackendRef {
-
 	uniqueBackendRefs := map[uniqueBackendRefsKey]*gwapiv1.HTTPBackendRef{}
 
 	for _, backendRef := range backendRefs {

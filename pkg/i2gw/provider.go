@@ -20,13 +20,14 @@ import (
 	"context"
 	"sync"
 
-	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
-	providerir "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
+	providerir "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
 )
 
 // ProviderConstructorByName is a map of ProviderConstructor functions by a
@@ -58,7 +59,6 @@ type Provider interface {
 }
 
 type CustomResourceReader interface {
-
 	// ReadResourcesFromCluster reads custom resources associated with
 	// the underlying Provider implementation from the kubernetes cluster.
 	ReadResourcesFromCluster(ctx context.Context) error

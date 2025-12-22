@@ -17,8 +17,9 @@ limitations under the License.
 package providerir
 
 import (
-	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"k8s.io/apimachinery/pkg/types"
+
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 )
 
 func ToEmitterIR(pIR ProviderIR) emitterir.EmitterIR {

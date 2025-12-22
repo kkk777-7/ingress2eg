@@ -17,10 +17,11 @@ limitations under the License.
 package standard_emitter
 
 import (
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/emitters/utils"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 func init() {

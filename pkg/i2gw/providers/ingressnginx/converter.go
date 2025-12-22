@@ -17,11 +17,12 @@ limitations under the License.
 package ingressnginx
 
 import (
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	provider_intermediate "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/providers/common"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // resourcesToIRConverter implements the ToIR function of i2gw.ResourcesToIRConverter interface.
@@ -39,7 +40,6 @@ func newResourcesToIRConverter() *resourcesToIRConverter {
 }
 
 func (c *resourcesToIRConverter) convert(storage *storage) (emitterir.EmitterIR, field.ErrorList) {
-
 	// TODO(liorliberman) temporary until we decide to change ToIR and featureParsers to get a map of [types.NamespacedName]*networkingv1.Ingress instead of a list
 	ingressList := storage.Ingresses.List()
 

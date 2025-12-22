@@ -115,7 +115,7 @@ func ToBackendRef(namespace string, ib networkingv1.IngressBackend, servicePorts
 			return &gwapiv1.BackendRef{
 				BackendObjectReference: gwapiv1.BackendObjectReference{
 					Name: gwapiv1.ObjectName(ib.Service.Name),
-					Port: (*gwapiv1.PortNumber)(&ib.Service.Port.Number),
+					Port: &ib.Service.Port.Number,
 				},
 			}, nil
 		}
@@ -129,7 +129,7 @@ func ToBackendRef(namespace string, ib networkingv1.IngressBackend, servicePorts
 		return &gwapiv1.BackendRef{
 			BackendObjectReference: gwapiv1.BackendObjectReference{
 				Name: gwapiv1.ObjectName(ib.Service.Name),
-				Port: (*gwapiv1.PortNumber)(&portNumber),
+				Port: &portNumber,
 			},
 		}, nil
 	}
@@ -291,7 +291,7 @@ func RemoveGRPCRulesFromHTTPRoute(httpRoute *gwapiv1.HTTPRoute, grpcServiceSet m
 
 		// Check each backend ref in the rule
 		for _, backendRef := range rule.BackendRefs {
-			serviceName := string(backendRef.BackendRef.BackendObjectReference.Name)
+			serviceName := string(backendRef.Name)
 			// Only keep backend refs that are NOT gRPC services
 			if _, isGRPCService := grpcServiceSet[serviceName]; !isGRPCService {
 				remainingBackendRefs = append(remainingBackendRefs, backendRef)
@@ -310,7 +310,6 @@ func RemoveGRPCRulesFromHTTPRoute(httpRoute *gwapiv1.HTTPRoute, grpcServiceSet m
 
 // CreateBackendTLSPolicy creates a BackendTLSPolicy for the given service
 func CreateBackendTLSPolicy(namespace, policyName, serviceName string) gwapiv1.BackendTLSPolicy {
-
 	// TODO: Migrate BackendTLSPolicy from gwapiv1alpha3 to gwapiv1 for Gateway API 1.4
 	// See: https://github.com/kubernetes-sigs/ingress2gateway/issues/236
 	return gwapiv1.BackendTLSPolicy{

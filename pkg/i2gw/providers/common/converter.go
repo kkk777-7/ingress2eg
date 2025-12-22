@@ -22,8 +22,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
-	providerir "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,6 +30,9 @@ import (
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
+	providerir "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
 )
 
 // ToIR converts the received ingresses to providerir.ProviderIR without taking into

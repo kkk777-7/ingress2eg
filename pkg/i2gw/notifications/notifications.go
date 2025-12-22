@@ -21,9 +21,8 @@ import (
 	"strings"
 	"sync"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/olekukonko/tablewriter"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func init() {

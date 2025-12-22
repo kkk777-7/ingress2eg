@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -70,7 +71,7 @@ func Test_ExtractObjectsFromReader(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stream, err := os.ReadFile(tc.filePath)
+			stream, err := os.ReadFile(filepath.Clean(tc.filePath))
 			if err != nil {
 				t.Errorf("failed to read file %s: %v", tc.filePath, err)
 			}

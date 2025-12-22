@@ -16,12 +16,12 @@ limitations under the License.
 
 package cmd
 
+//nolint:gci
 import (
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,9 +29,9 @@ import (
 	"k8s.io/cli-runtime/pkg/printers"
 	"k8s.io/client-go/tools/clientcmd"
 
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	// Call init function for the providers
 	_ "github.com/kkk777-7/ingress2eg/pkg/i2gw/providers/ingressnginx"
-
 	// Call init for notifications
 	_ "github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
 	// Call init for emitters
@@ -261,7 +261,6 @@ func (pr *PrintRunner) initializeResourcePrinter() error {
 	default:
 		return fmt.Errorf("%s is not a supported output format", pr.outputFormat)
 	}
-
 }
 
 // initializeNamespaceFilter initializes the correct namespace filter for resource processing with these scenarios:
@@ -299,7 +298,7 @@ func newPrintCommand() *cobra.Command {
 
 	// printCmd represents the print command. It prints Gateway API resources
 	// generated from Ingress resources.
-	var cmd = &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "print",
 		Short: "Prints Gateway API objects generated from ingress and provider-specific resources.",
 		RunE:  pr.PrintGatewayAPIObjects,

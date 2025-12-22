@@ -20,14 +20,15 @@ import (
 	"fmt"
 	"strconv"
 
-	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
-	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
-	providerir "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
-	"github.com/kkk777-7/ingress2eg/pkg/i2gw/providers/common"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
+	providerir "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw/providers/common"
 )
 
 const (
@@ -97,7 +98,7 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 		}
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
-			if ruleIdx >= len(emitterHTTPRouteContext.HTTPRoute.Spec.Rules) {
+			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
 				errList = append(errList, field.InternalError(
 					field.NewPath("httproute", emitterHTTPRouteContext.HTTPRoute.Name, "spec", "rules").Index(ruleIdx),
 					fmt.Errorf("rule index %d exceeds available rules", ruleIdx),

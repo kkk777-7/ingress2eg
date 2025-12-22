@@ -19,9 +19,10 @@ package ingressnginx
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/providers/common"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 // converter implements the i2gw.CustomResourceReader interface.

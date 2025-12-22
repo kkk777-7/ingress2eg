@@ -19,7 +19,6 @@ import (
 var (
 	envoyGatewayVersion string
 	gatewayAPIVersion   string
-	gitCommitID         string
 )
 
 type Info struct {
@@ -70,12 +69,12 @@ func versionPrint(w io.Writer, format string) error {
 	v := Get()
 	switch format {
 	case "json":
-		if marshalled, err := json.MarshalIndent(v, "", "  "); err == nil {
-			_, _ = fmt.Fprintln(w, string(marshalled))
+		if marshaled, err := json.MarshalIndent(v, "", "  "); err == nil {
+			_, _ = fmt.Fprintln(w, string(marshaled))
 		}
 	case "yaml":
-		if marshalled, err := yaml.Marshal(v); err == nil {
-			_, _ = fmt.Fprintln(w, string(marshalled))
+		if marshaled, err := yaml.Marshal(v); err == nil {
+			_, _ = fmt.Fprintln(w, string(marshaled))
 		}
 	default:
 		_, _ = fmt.Fprintf(w, "ENVOY_GATEWAY_VERSION: %s\n", v.EnvoyGatewayVersion)

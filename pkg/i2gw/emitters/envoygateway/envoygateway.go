@@ -1,10 +1,11 @@
 package envoygateway_emitter
 
 import (
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/emitters/utils"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const emitterName = "envoy-gateway"
@@ -31,5 +32,6 @@ func (c *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.Err
 	if len(errs) != 0 {
 		return i2gw.GatewayResources{}, errs
 	}
+
 	return gatewayResources, nil
 }

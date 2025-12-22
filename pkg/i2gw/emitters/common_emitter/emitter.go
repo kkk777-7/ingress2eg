@@ -17,8 +17,9 @@ limitations under the License.
 package common_emitter
 
 import (
-	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 )
 
 type Emitter struct{}

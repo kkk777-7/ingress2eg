@@ -20,15 +20,18 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/validation/field"
+
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 // The Name of the provider.
-const Name = "ingress-nginx"
-const NginxIngressClass = "nginx"
-const NginxIngressClassFlag = "ingress-class"
+const (
+	Name                  = "ingress-nginx"
+	NginxIngressClass     = "nginx"
+	NginxIngressClassFlag = "ingress-class"
+)
 
 func init() {
 	i2gw.ProviderConstructorByName[Name] = NewProvider

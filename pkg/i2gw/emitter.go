@@ -17,13 +17,14 @@ limitations under the License.
 package i2gw
 
 import (
-	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwapiv1alpha2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 	gwapiv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
+
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 )
 
 type Emitter interface {
@@ -59,5 +60,4 @@ type EmitterName string
 
 type EmitterConstructor func(conf *EmitterConf) Emitter
 
-type EmitterConf struct {
-}
+type EmitterConf struct{}
