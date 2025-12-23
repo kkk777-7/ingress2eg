@@ -33,7 +33,8 @@ var overrideGolden = flag.Bool("override", false, "override golden files")
 func TestFileConversion(t *testing.T) {
 	ctx := context.Background()
 
-	filepath.WalkDir(filepath.Join(testDataDir, "input"), func(path string, d fs.DirEntry, err error) error {
+	inputDir := filepath.Join(testDataDir, "input")
+	filepath.WalkDir(inputDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			t.Fatal(err.Error())
 		}
@@ -65,7 +66,12 @@ func TestFileConversion(t *testing.T) {
 			t.Fatalf("unexpected errors during ir conversion to Gateway for file %v: %v", d.Name(), errList.ToAggregate().Error())
 		}
 
-		outputFile := filepath.Join(testDataDir, "output", d.Name())
+		// Preserve directory structure in output
+		relPath, err := filepath.Rel(inputDir, path)
+		if err != nil {
+			t.Fatalf("Failed to get relative path for %v: %v", path, err.Error())
+		}
+		outputFile := filepath.Join(testDataDir, "output", relPath)
 
 		if *overrideGolden {
 			if err := writeGatewayResourcesToFile(t, outputFile, &gotGatewayResources); err != nil {
@@ -235,6 +241,11 @@ func readGatewayResourcesFromFile(t *testing.T, filename string) (*i2gw.GatewayR
 
 func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.GatewayResources) error {
 	t.Helper()
+
+	// Ensure output directory exists
+	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
 
 	scheme := runtime.NewScheme()
 	if err := gwapiv1.Install(scheme); err != nil {
