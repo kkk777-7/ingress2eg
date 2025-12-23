@@ -111,9 +111,14 @@ func RouteName(ingressName, host string) string {
 
 // RuleNameFromPathMatch generates a valid DNS label name for an HTTPRoute rule
 // based on the path type and path value.
-func RuleNameFromPathMatch(pathType, pathValue string) string {
+func RuleNameFromPathMatch(pathType, pathValue string, pathIdx int) string {
 	// Sanitize path type to lowercase
 	sanitizedType := strings.ToLower(pathType)
+
+	// early return to avoid parsing regex paths
+	if sanitizedType == "implementationspecific" {
+		return fmt.Sprintf("rule-impl-specific-%d", pathIdx)
+	}
 
 	// Sanitize path value
 	sanitizedPath := pathValue

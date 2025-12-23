@@ -376,7 +376,7 @@ func (rg *ingressRuleGroup) toHTTPRoute(servicePorts map[types.NamespacedName]ma
 		if path.path.PathType != nil {
 			pathType = string(*path.path.PathType)
 		}
-		ruleName := RuleNameFromPathMatch(pathType, path.path.Path)
+		ruleName := RuleNameFromPathMatch(pathType, path.path.Path, path.pathIdx)
 
 		hrRule := gwapiv1.HTTPRouteRule{
 			Name:    (*gwapiv1.SectionName)(&ruleName),

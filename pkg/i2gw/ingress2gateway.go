@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	common_emitter "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitters/common_emitter"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
 )
@@ -95,6 +96,8 @@ func ToGatewayAPIResources(ctx context.Context, namespace string, inputFile stri
 		providerGatewayResources, conversionErrs := emitter.Emit(ir)
 		errs = append(errs, conversionErrs...)
 		gatewayResources = append(gatewayResources, providerGatewayResources)
+
+		checkConvertExtensionFeatures(ir, emitterName)
 	}
 	notificationTablesMap := notifications.NotificationAggr.CreateNotificationTables()
 	if len(errs) > 0 {
@@ -178,4 +181,34 @@ func CastToUnstructured(obj runtime.Object) (*unstructured.Unstructured, error) 
 	}
 
 	return &unstructured.Unstructured{Object: unstructuredObj}, nil
+}
+
+func checkConvertExtensionFeatures(ir emitterir.EmitterIR, emitterName string) {
+	for _, httpRouteContext := range ir.HTTPRoutes {
+		for key, efMap := range httpRouteContext.ExtensionFeatures {
+			for _, efIR := range efMap {
+				if !efIR.IsParsed() {
+					message := fmt.Sprintf("%s from Ingress %s\nis not supported by %s Emitter",
+						key, efIR.GetSource().IngressNN.String(), emitterName,
+					)
+					notification := notifications.NewNotification(
+						notifications.WarningNotification,
+						message,
+						&httpRouteContext.HTTPRoute,
+					)
+					notifications.NotificationAggr.DispatchNotification(notification, "INGRESS2EG")
+				} else if efIR.GetError() != nil {
+					message := fmt.Sprintf("%s from Ingress %s is not converted,\n%s Emitter convert error: %v",
+						key, efIR.GetSource().IngressNN.String(), emitterName, efIR.GetError(),
+					)
+					notification := notifications.NewNotification(
+						notifications.WarningNotification,
+						message,
+						&httpRouteContext.HTTPRoute,
+					)
+					notifications.NotificationAggr.DispatchNotification(notification, "INGRESS2EG")
+				}
+			}
+		}
+	}
 }
