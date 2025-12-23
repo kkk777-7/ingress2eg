@@ -188,8 +188,8 @@ func checkConvertExtensionFeatures(ir emitterir.EmitterIR, emitterName string) {
 		for key, efMap := range httpRouteContext.ExtensionFeatures {
 			for _, efIR := range efMap {
 				if !efIR.IsParsed() {
-					message := fmt.Sprintf("%s from Ingress %s %s\nis not supported by %s Emitter",
-						key, efIR.GetSource().IngressNN.String(), efIR.GetSource().AnnotationKey, emitterName,
+					message := fmt.Sprintf("%s from Ingress %s\nis not supported by %s Emitter",
+						key, efIR.GetSource().IngressNN.String(), emitterName,
 					)
 					notification := notifications.NewNotification(
 						notifications.WarningNotification,
@@ -198,8 +198,8 @@ func checkConvertExtensionFeatures(ir emitterir.EmitterIR, emitterName string) {
 					)
 					notifications.NotificationAggr.DispatchNotification(notification, "INGRESS2EG")
 				} else if efIR.GetError() != nil {
-					message := fmt.Sprintf("%s from Ingress %s %s is not converted,\n%s Emitter convert error: %v",
-						key, efIR.GetSource().IngressNN.String(), efIR.GetSource().AnnotationKey, emitterName, efIR.GetError(),
+					message := fmt.Sprintf("%s from Ingress %s is not converted,\n%s Emitter convert error: %v",
+						key, efIR.GetSource().IngressNN.String(), emitterName, efIR.GetError(),
 					)
 					notification := notifications.NewNotification(
 						notifications.WarningNotification,
