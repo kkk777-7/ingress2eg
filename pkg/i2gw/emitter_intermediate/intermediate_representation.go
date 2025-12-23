@@ -47,6 +47,38 @@ type GatewayContext struct {
 
 type HTTPRouteContext struct {
 	gwapiv1.HTTPRoute
+
+	// If section name is empty, it means the feature is attached to route level.
+	ExtensionFeatures map[ExtensionFeatureKey]map[gwapiv1.SectionName]ExtensionFeatureIR
+}
+
+// MergeExtensionFeature merges extension features across all rules into a route-level feature
+// if all rules have identical extension features for the given key.
+// This consolidates redundant rule-level features into a single route-level feature.
+func (h *HTTPRouteContext) MergeExtensionFeature(key ExtensionFeatureKey) {
+	if h.ExtensionFeatures == nil {
+		return
+	}
+	efMap, ok := h.ExtensionFeatures[key]
+	if !ok {
+		return
+	}
+	if len(efMap) != len(h.Spec.Rules) {
+		return
+	}
+
+	var first *ExtensionFeatureIR
+	for _, feature := range efMap {
+		if first == nil {
+			first = &feature
+			continue
+		}
+		if !(*first).Equals(feature) {
+			return
+		}
+	}
+
+	h.ExtensionFeatures[key] = map[gwapiv1.SectionName]ExtensionFeatureIR{"": *first}
 }
 
 type GatewayClassContext struct {
