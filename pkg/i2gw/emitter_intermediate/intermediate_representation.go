@@ -23,6 +23,10 @@ import (
 	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
+const (
+	RouteAllIndex = -1
+)
+
 // EmitterIR holds specifications of Gateway Objects for supporting Ingress extensions,
 // annotations, and proprietary API features not supported as Gateway core
 // features. An EmitterIR field can be mapped to core Gateway-API fields,
@@ -48,8 +52,9 @@ type GatewayContext struct {
 type HTTPRouteContext struct {
 	gwapiv1.HTTPRoute
 
-	// If section name is empty, it means the feature is attached to route level.
-	ExtensionFeatures map[ExtensionFeatureKey]map[gwapiv1.SectionName]ExtensionFeatureIR
+	// ExtensionFeatures maps extension feature keys to rule-specific features.
+	// The inner map key is the rule index. Use RouteAllIndex (-1) for route-level features.
+	ExtensionFeatures map[ExtensionFeatureKey]map[int]ExtensionFeatureIR
 }
 
 // MergeExtensionFeature merges extension features across all rules into a route-level feature
@@ -78,7 +83,7 @@ func (h *HTTPRouteContext) MergeExtensionFeature(key ExtensionFeatureKey) {
 		}
 	}
 
-	h.ExtensionFeatures[key] = map[gwapiv1.SectionName]ExtensionFeatureIR{"": *first}
+	h.ExtensionFeatures[key] = map[int]ExtensionFeatureIR{RouteAllIndex: *first}
 }
 
 type GatewayClassContext struct {

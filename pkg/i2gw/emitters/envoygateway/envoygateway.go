@@ -26,12 +26,17 @@ func (c *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.Err
 	}
 
 	// NOTE:
-	// If common emmiter will implement, should remove `utils.ToGatewayResources`.
+	// If common emitter will implement, should remove `utils.ToGatewayResources`.
 	// Envoy Gateway Emitter should only handle custom resources generation.
 	gatewayResources, errs := utils.ToGatewayResources(ir)
 	if len(errs) != 0 {
 		return i2gw.GatewayResources{}, errs
 	}
+	c.ToEnvoyGatewayResources(ir, &gatewayResources)
 
 	return gatewayResources, nil
+}
+
+func (c *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
+	c.EmitRegex(ir, gwResources)
 }
