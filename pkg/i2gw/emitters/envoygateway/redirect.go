@@ -57,7 +57,7 @@ func parseRedirectURL(urlStr string) (*redirectURLComponents, error) {
 
 	// Set port
 	if parsedURL.Port() != "" {
-		port, err := strconv.Atoi(parsedURL.Port())
+		port, err := strconv.ParseInt(parsedURL.Port(), 10, 32)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse port: %w", err)
 		}
