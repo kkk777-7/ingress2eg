@@ -20,7 +20,7 @@ func convertNginxSubstitutionToEnvoy(nginxSubstitution string) string {
 	return re.ReplaceAllString(nginxSubstitution, `\$1`)
 }
 
-func (c *Emitter) EmitRewrite(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
+func (e *Emitter) EmitRewrite(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
 	for _, ctx := range ir.HTTPRoutes {
 		for idx, ir := range ctx.ExtensionFeatures[emitterir.RewriteFeatureKey] {
 			if ir.IsParsed() {
@@ -57,7 +57,7 @@ func (c *Emitter) EmitRewrite(ir emitterir.EmitterIR, gwResources *i2gw.GatewayR
 					continue
 				}
 
-				filter := builderRewriteHTTPRouteFilter(ctx, idx, regexIR, rewriteIR)
+				filter := buildRewriteHTTPRouteFilter(ctx, idx, regexIR, rewriteIR)
 
 				obj, err := i2gw.CastToUnstructured(filter)
 				if err != nil {

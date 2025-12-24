@@ -6,6 +6,7 @@ import (
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/emitters/utils"
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
 )
 
 const emitterName = "envoy-gateway"
@@ -14,17 +15,17 @@ func init() {
 	i2gw.EmitterConstructorByName[emitterName] = NewEmitter
 }
 
-type Emitter struct{}
-
-func NewEmitter(_ *i2gw.EmitterConf) i2gw.Emitter {
-	return &Emitter{}
+type Emitter struct {
+	builderMap *builderMap
 }
 
-func (c *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.ErrorList) {
-	for key, ctx := range ir.HTTPRoutes {
-		ir.HTTPRoutes[key] = ctx
+func NewEmitter(_ *i2gw.EmitterConf) i2gw.Emitter {
+	return &Emitter{
+		builderMap: NewBuilderMap(),
 	}
+}
 
+func (e *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.ErrorList) {
 	// NOTE:
 	// If common emitter will implement, should remove `utils.ToGatewayResources`.
 	// Envoy Gateway Emitter should only handle custom resources generation.
@@ -32,13 +33,23 @@ func (c *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.Err
 	if len(errs) != 0 {
 		return i2gw.GatewayResources{}, errs
 	}
-	c.ToEnvoyGatewayResources(ir, &gatewayResources)
+	e.ToEnvoyGatewayResources(ir, &gatewayResources)
 
 	return gatewayResources, nil
 }
 
-func (c *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
-	c.EmitRegex(ir, gwResources)
-	c.EmitRewrite(ir, gwResources)
-	c.EmitRedirect(ir, gwResources)
+func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
+	e.EmitRegex(ir, gwResources)
+	e.EmitRewrite(ir, gwResources)
+	e.EmitRedirect(ir, gwResources)
+	e.EmitBasicAuth(ir, gwResources)
+
+	for _, securityPolicy := range e.builderMap.SecurityPolices {
+		obj, err := i2gw.CastToUnstructured(securityPolicy)
+		if err != nil {
+			notify(notifications.ErrorNotification, "Failed to cast SecurityPolicy to unstructured", securityPolicy)
+			continue
+		}
+		gwResources.GatewayExtensions = append(gwResources.GatewayExtensions, *obj)
+	}
 }

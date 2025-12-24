@@ -75,7 +75,7 @@ func parseRedirectURL(urlStr string) (*redirectURLComponents, error) {
 	return components, nil
 }
 
-func (c *Emitter) EmitRedirect(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
+func (e *Emitter) EmitRedirect(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
 	for _, ctx := range ir.HTTPRoutes {
 		for idx, ir := range ctx.ExtensionFeatures[emitterir.RedirectFeatureKey] {
 			if ir.IsParsed() {
@@ -102,8 +102,8 @@ func (c *Emitter) EmitRedirect(ir emitterir.EmitterIR, gwResources *i2gw.Gateway
 			}
 			gw := gwResources.Gateways[gwNN]
 
-			c.emitSslRedirect(&route, &gw, redirectIR, idx)
-			c.emitRedirect(&route, redirectIR, idx)
+			e.emitSslRedirect(&route, &gw, redirectIR, idx)
+			e.emitRedirect(&route, redirectIR, idx)
 
 			gwResources.HTTPRoutes[nn] = route
 
@@ -115,7 +115,7 @@ func (c *Emitter) EmitRedirect(ir emitterir.EmitterIR, gwResources *i2gw.Gateway
 	}
 }
 
-func (c *Emitter) emitSslRedirect(route *gwapiv1.HTTPRoute, gw *gwapiv1.Gateway, redirectIR *emitterir.RedirectFeatureIR, ruleIdx int) {
+func (e *Emitter) emitSslRedirect(route *gwapiv1.HTTPRoute, gw *gwapiv1.Gateway, redirectIR *emitterir.RedirectFeatureIR, ruleIdx int) {
 	if redirectIR.Ssl == nil {
 		return
 	}
@@ -155,7 +155,7 @@ func (c *Emitter) emitSslRedirect(route *gwapiv1.HTTPRoute, gw *gwapiv1.Gateway,
 	}
 }
 
-func (c *Emitter) emitRedirect(route *gwapiv1.HTTPRoute, redirectIR *emitterir.RedirectFeatureIR, ruleIdx int) {
+func (e *Emitter) emitRedirect(route *gwapiv1.HTTPRoute, redirectIR *emitterir.RedirectFeatureIR, ruleIdx int) {
 	if redirectIR.Url == "" {
 		return
 	}
