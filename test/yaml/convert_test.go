@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -118,11 +119,53 @@ func TestFileConversion(t *testing.T) {
 			t.Errorf("ReferenceGrants diff for file %v (-want +got): %s", d.Name(), cmp.Diff(wantGatewayResources.ReferenceGrants, gotGatewayResources.ReferenceGrants))
 		}
 
-		if !apiequality.Semantic.DeepEqual(gotGatewayResources.GatewayExtensions, wantGatewayResources.GatewayExtensions) {
-			t.Errorf("GatewayExtensions diff for file %v (-want +got): %s", d.Name(), cmp.Diff(wantGatewayResources.GatewayExtensions, gotGatewayResources.GatewayExtensions))
+		if !unstructuredSlicesEqualIgnoreOrder(gotGatewayResources.GatewayExtensions, wantGatewayResources.GatewayExtensions) {
+			t.Errorf("GatewayExtensions diff for file %v (-want +got): %s", d.Name(), cmp.Diff(sortUnstructuredSlice(wantGatewayResources.GatewayExtensions), sortUnstructuredSlice(gotGatewayResources.GatewayExtensions)))
 		}
 		return nil
 	})
+}
+
+// unstructuredSlicesEqualIgnoreOrder compares two slices of unstructured objects ignoring order.
+func unstructuredSlicesEqualIgnoreOrder(a, b []unstructured.Unstructured) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	// Sort and compare
+	aSorted := sortUnstructuredSlice(a)
+	bSorted := sortUnstructuredSlice(b)
+
+	return apiequality.Semantic.DeepEqual(aSorted, bSorted)
+}
+
+// sortUnstructuredSlice returns a sorted copy of the slice.
+// Sorts by: GVK > Namespace > Name
+func sortUnstructuredSlice(slice []unstructured.Unstructured) []unstructured.Unstructured {
+	// Create a copy to avoid modifying the original
+	sorted := make([]unstructured.Unstructured, len(slice))
+	copy(sorted, slice)
+
+	sort.Slice(sorted, func(i, j int) bool {
+		// Sort by GVK string
+		iGVK := sorted[i].GroupVersionKind().String()
+		jGVK := sorted[j].GroupVersionKind().String()
+		if iGVK != jGVK {
+			return iGVK < jGVK
+		}
+
+		// Then by Namespace
+		iNamespace := sorted[i].GetNamespace()
+		jNamespace := sorted[j].GetNamespace()
+		if iNamespace != jNamespace {
+			return iNamespace < jNamespace
+		}
+
+		// Finally by Name
+		return sorted[i].GetName() < sorted[j].GetName()
+	})
+
+	return sorted
 }
 
 func readGatewayResourcesFromFile(t *testing.T, filename string) (*i2gw.GatewayResources, error) {
