@@ -16,7 +16,7 @@ import (
 const (
 	// Only support basic
 	authTypeAnnotation   = "nginx.ingress.kubernetes.io/auth-type"
-	authSecretAnnotation = "nginx.ingress.kubernetes.io/auth-secret"
+	authSecretAnnotation = "nginx.ingress.kubernetes.io/auth-secret" // #nosec G101
 )
 
 func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {

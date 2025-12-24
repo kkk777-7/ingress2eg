@@ -16,7 +16,7 @@ func init() {
 }
 
 type Emitter struct {
-	builderMap *builderMap
+	builderMap *BuilderMap
 }
 
 func NewEmitter(_ *i2gw.EmitterConf) i2gw.Emitter {

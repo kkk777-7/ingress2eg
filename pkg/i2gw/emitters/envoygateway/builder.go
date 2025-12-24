@@ -11,12 +11,12 @@ import (
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 )
 
-type builderMap struct {
+type BuilderMap struct {
 	SecurityPolices map[types.NamespacedName]*egapiv1a1.SecurityPolicy
 }
 
-func NewBuilderMap() *builderMap {
-	return &builderMap{
+func NewBuilderMap() *BuilderMap {
+	return &BuilderMap{
 		SecurityPolices: make(map[types.NamespacedName]*egapiv1a1.SecurityPolicy),
 	}
 }
