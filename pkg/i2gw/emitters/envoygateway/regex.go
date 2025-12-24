@@ -12,7 +12,7 @@ import (
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
 )
 
-func (c *Emitter) EmitRegex(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
+func (e *Emitter) EmitRegex(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
 	for _, ctx := range ir.HTTPRoutes {
 		for idx, regexIR := range ctx.ExtensionFeatures[emitterir.RegexFeatureKey] {
 			if regexIR.IsParsed() {

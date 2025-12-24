@@ -58,7 +58,7 @@ func regexFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]m
 
 					extSource := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: regexAnnotation,
+						AnnotationKey: []string{regexAnnotation},
 					}
 					regexIR.SetSource(extSource)
 

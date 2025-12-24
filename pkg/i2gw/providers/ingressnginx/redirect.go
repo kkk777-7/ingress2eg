@@ -61,7 +61,7 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 
 					source := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: sslRedirectAnnotation,
+						AnnotationKey: []string{sslRedirectAnnotation},
 					}
 					redirectIR.SetSource(source)
 
@@ -77,7 +77,7 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 
 					source := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: forceSslRedirectAnnotation,
+						AnnotationKey: []string{forceSslRedirectAnnotation},
 					}
 					redirectIR.SetSource(source)
 
@@ -92,7 +92,7 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 
 					source := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: permanentRedirectAnnotation,
+						AnnotationKey: []string{permanentRedirectAnnotation},
 					}
 					redirectIR.SetSource(source)
 
@@ -107,7 +107,7 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 
 					source := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: temporalRedirectAnnotation,
+						AnnotationKey: []string{temporalRedirectAnnotation},
 					}
 					redirectIR.SetSource(source)
 

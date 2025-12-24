@@ -14,11 +14,12 @@ import (
 )
 
 const (
-	rewriteAnnotation = "nginx.ingress.kubernetes.io/rewrite-target"
-	appRootAnnotation = "nginx.ingress.kubernetes.io/app-root"
+	// Only support basic
+	authTypeAnnotation   = "nginx.ingress.kubernetes.io/auth-type"
+	authSecretAnnotation = "nginx.ingress.kubernetes.io/auth-secret" // #nosec G101
 )
 
-func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
+func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
 	ruleGroups := common.GetRuleGroups(ingresses)
 	var errList field.ErrorList
 
@@ -51,31 +52,31 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 				}
 				ingress := *source.Ingress
 
-				if val := ingress.Annotations[rewriteAnnotation]; val != "" {
-					rewriteIR := getOrCreateRewriteIR(&emitterHTTPRouteContext, ruleIdx)
-					rewriteIR.Target = val
-
-					source := &emitterir.ExtensionFeatureSource{
-						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: []string{rewriteAnnotation},
+				if val := ingress.Annotations[authTypeAnnotation]; val != "" {
+					if val != "basic" {
+						notify(notifications.ErrorNotification, fmt.Sprintf("unsupported auth-type %q in Ingress %s/%s, only 'basic' is supported",
+							val, ingress.Namespace, ingress.Name), &emitterHTTPRouteContext.HTTPRoute)
+						continue
 					}
-					rewriteIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
-				}
-
-				if val := ingress.Annotations[appRootAnnotation]; val != "" {
-					rewriteIR := getOrCreateRewriteIR(&emitterHTTPRouteContext, ruleIdx)
-					rewriteIR.Target = val
-
-					source := &emitterir.ExtensionFeatureSource{
-						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: []string{appRootAnnotation},
+					secretName := ingress.Annotations[authSecretAnnotation]
+					if secretName == "" {
+						notify(notifications.ErrorNotification, fmt.Sprintf("missing auth-secret annotation in Ingress %s/%s",
+							ingress.Namespace, ingress.Name), &emitterHTTPRouteContext.HTTPRoute)
+						continue
 					}
-					rewriteIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite (app-root) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
+					basicAuthIR := getOrCreateBasicAuthIR(&emitterHTTPRouteContext, ruleIdx)
+					basicAuthIR.Name = secretName
+					basicAuthIR.Namespace = ingress.Namespace
+
+					extSource := &emitterir.ExtensionFeatureSource{
+						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
+						AnnotationKey: []string{authTypeAnnotation, authSecretAnnotation},
+					}
+					basicAuthIR.SetSource(extSource)
+
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed Auth (auth-type, auth-secret) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
 						&emitterHTTPRouteContext.HTTPRoute)
 				}
 			}
@@ -89,20 +90,20 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 	return nil
 }
 
-func getOrCreateRewriteIR(ctx *emitterir.HTTPRouteContext, ruleIdx int) *emitterir.RewriteFeatureIR {
+func getOrCreateBasicAuthIR(ctx *emitterir.HTTPRouteContext, ruleIdx int) *emitterir.BasicAuthFeatureIR {
 	if ctx.ExtensionFeatures == nil {
 		ctx.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
 	}
-	efMap, exists := ctx.ExtensionFeatures[emitterir.RewriteFeatureKey]
+	efMap, exists := ctx.ExtensionFeatures[emitterir.BasicAuthFeatureKey]
 	if !exists {
 		efMap = make(map[int]emitterir.ExtensionFeatureIR)
-		ctx.ExtensionFeatures[emitterir.RewriteFeatureKey] = efMap
+		ctx.ExtensionFeatures[emitterir.BasicAuthFeatureKey] = efMap
 	}
 
 	ef, exists := efMap[ruleIdx]
 	if !exists {
-		ef = &emitterir.RewriteFeatureIR{}
+		ef = &emitterir.BasicAuthFeatureIR{}
 		efMap[ruleIdx] = ef
 	}
-	return ef.(*emitterir.RewriteFeatureIR)
+	return ef.(*emitterir.BasicAuthFeatureIR)
 }

@@ -1,0 +1,62 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: example.com
+    name: example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: auth-ingress-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: service-ingress1
+      port: 443
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-prefix-root
+  - backendRefs:
+    - name: service-ingress1
+      port: 443
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    name: rule-prefix-api
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: auth-ingress-example-com
+  namespace: namespace1
+spec:
+  basicAuth:
+    users:
+      group: ""
+      kind: Secret
+      name: basic-auth-secret
+      namespace: namespace1
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: auth-ingress-example-com
+status:
+  ancestors: null

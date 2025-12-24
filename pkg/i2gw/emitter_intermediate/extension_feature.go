@@ -32,7 +32,7 @@ type ExtensionFeatureIR interface {
 
 type ExtensionFeatureSource struct {
 	IngressNN     types.NamespacedName
-	AnnotationKey string
+	AnnotationKey []string
 }
 
 type ExtensionFeatureMetadata struct {
