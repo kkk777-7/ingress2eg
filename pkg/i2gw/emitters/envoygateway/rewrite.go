@@ -51,7 +51,7 @@ func (c *Emitter) EmitRewrite(ir emitterir.EmitterIR, gwResources *i2gw.GatewayR
 			} else {
 				regexIR := regexIR.(*emitterir.RegexFeatureIR)
 				if regexIR.PathPattern == "" {
-					notify(notifications.ErrorNotification, fmt.Sprintf("Cannot convert rewrite annotation for Ingress %s/%s: regex path match is required",
+					notify(notifications.ErrorNotification, fmt.Sprintf("Cannot convert Rewrite annotation for Ingress %s/%s: regex path match is required",
 						rewriteIR.GetSource().IngressNN.Namespace, rewriteIR.GetSource().IngressNN.Name),
 						&ctx.HTTPRoute)
 					continue

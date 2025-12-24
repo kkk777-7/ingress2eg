@@ -10,28 +10,21 @@ spec:
     name: example-com-http
     port: 80
     protocol: HTTP
+  - hostname: example.com
+    name: example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: null
+        kind: null
+        name: tls-secret
 status: {}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: ingress-default-default-backend
-  namespace: namespace1
-spec:
-  parentRefs:
-  - name: nginx
-  rules:
-  - backendRefs:
-    - name: default-service
-      port: 8080
-    name: rule-default-backend
-status:
-  parents: []
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: ingress-default-example-com
+  name: redirect-ingress-example-com
   namespace: namespace1
 spec:
   hostnames:
@@ -40,12 +33,17 @@ spec:
   - name: nginx
   rules:
   - backendRefs:
-    - name: app-service
-      port: 8080
+    - name: service-ingress1
+      port: 443
+    filters:
+    - requestRedirect:
+        scheme: https
+        statusCode: 301
+      type: RequestRedirect
     matches:
     - path:
         type: PathPrefix
-        value: /app
-    name: rule-prefix-app
+        value: /
+    name: rule-prefix-root
 status:
   parents: []

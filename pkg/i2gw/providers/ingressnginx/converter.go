@@ -38,6 +38,7 @@ func newResourcesToIRConverter() *resourcesToIRConverter {
 			canaryFeature,
 			regexFeature,
 			rewriteFeature,
+			redirectFeature,
 		},
 		implementationSpecificOptions: i2gw.ProviderImplementationSpecificOptions{
 			ToImplementationSpecificHTTPPathTypeMatch: implementationSpecificHTTPPathTypeMatch,
