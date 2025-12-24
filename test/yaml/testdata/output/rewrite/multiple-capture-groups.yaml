@@ -1,0 +1,54 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: example.com
+    name: example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rewrite-ingress-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: service-ingress1
+      port: 443
+    filters:
+    - extensionRef:
+        group: gateway.envoyproxy.io
+        kind: HTTPRouteFilter
+        name: rewrite-ingress-example-com-0
+      type: ExtensionRef
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-impl-specific-0
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: HTTPRouteFilter
+metadata:
+  name: rewrite-ingress-example-com-0
+  namespace: namespace1
+spec:
+  urlRewrite:
+    path:
+      replaceRegexMatch:
+        pattern: ^/v([0-9]+)/(.*)$
+        substitution: /\1/api/\2
+      type: ReplaceRegexMatch

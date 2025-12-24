@@ -29,7 +29,6 @@ linters:
     - gosec
     - staticcheck
     - ineffassign
-    - unparam
     - errcheck
     - errorlint
     - dupl

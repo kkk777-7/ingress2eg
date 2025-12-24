@@ -39,4 +39,5 @@ func (c *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.Err
 
 func (c *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
 	c.EmitRegex(ir, gwResources)
+	c.EmitRewrite(ir, gwResources)
 }

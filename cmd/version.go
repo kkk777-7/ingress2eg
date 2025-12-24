@@ -31,7 +31,10 @@ func init() {
 	bi, ok := debug.ReadBuildInfo()
 	if ok {
 		for _, dep := range bi.Deps {
-			if dep.Path == "sigs.k8s.io/gateway-api" {
+			switch dep.Path {
+			case "github.com/envoyproxy/gateway":
+				envoyGatewayVersion = dep.Version
+			case "sigs.k8s.io/gateway-api":
 				gatewayAPIVersion = dep.Version
 			}
 		}

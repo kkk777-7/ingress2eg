@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	regexAnnotation = "nginx.ingress.kubernetes.io/use-regex"
+	rewriteAnnotation = "nginx.ingress.kubernetes.io/rewrite-target"
+	appRootAnnotation = "nginx.ingress.kubernetes.io/app-root"
 )
 
-func regexFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
+func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
 	ruleGroups := common.GetRuleGroups(ingresses)
 	var errList field.ErrorList
 
@@ -50,27 +51,49 @@ func regexFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]m
 				}
 				ingress := *source.Ingress
 
-				if val := ingress.Annotations[regexAnnotation]; val == "true" {
+				if val := ingress.Annotations[rewriteAnnotation]; val != "" {
 					if emitterHTTPRouteContext.ExtensionFeatures == nil {
 						emitterHTTPRouteContext.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
 					}
-					efMap, exists := emitterHTTPRouteContext.ExtensionFeatures[emitterir.RegexFeatureKey]
+					efMap, exists := emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey]
 					if !exists {
 						efMap = make(map[int]emitterir.ExtensionFeatureIR)
-						emitterHTTPRouteContext.ExtensionFeatures[emitterir.RegexFeatureKey] = efMap
+						emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey] = efMap
 					}
-					efMap[ruleIdx] = &emitterir.RegexFeatureIR{}
-					if source.Path != nil {
-						efMap[ruleIdx].(*emitterir.RegexFeatureIR).PathPattern = source.Path.Path
+					efMap[ruleIdx] = &emitterir.RewriteFeatureIR{
+						Target: val,
 					}
 
-					extSource := &emitterir.ExtensionFeatureSource{
+					source := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: regexAnnotation,
+						AnnotationKey: rewriteAnnotation,
 					}
-					efMap[ruleIdx].SetSource(extSource)
+					efMap[ruleIdx].SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Regex annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
+						&emitterHTTPRouteContext.HTTPRoute)
+				}
+
+				if val := ingress.Annotations[appRootAnnotation]; val != "" {
+					if emitterHTTPRouteContext.ExtensionFeatures == nil {
+						emitterHTTPRouteContext.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
+					}
+					efMap, exists := emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey]
+					if !exists {
+						efMap = make(map[int]emitterir.ExtensionFeatureIR)
+						emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey] = efMap
+					}
+					efMap[ruleIdx] = &emitterir.RewriteFeatureIR{
+						Target: val,
+					}
+
+					source := &emitterir.ExtensionFeatureSource{
+						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
+						AnnotationKey: appRootAnnotation,
+					}
+					efMap[ruleIdx].SetSource(source)
+
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite (app-root) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
 						&emitterHTTPRouteContext.HTTPRoute)
 				}
 			}
