@@ -3,6 +3,7 @@ package envoygateway_emitter
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 
@@ -17,12 +18,21 @@ func (c *Emitter) EmitRegex(ir emitterir.EmitterIR, gwResources *i2gw.GatewayRes
 			if regexIR.IsParsed() {
 				continue
 			}
-			for _, match := range ctx.HTTPRoute.Spec.Rules[idx].Matches {
-				match.Path.Type = ptr.To(gwapiv1.PathMatchRegularExpression)
+			nn := types.NamespacedName{
+				Namespace: ctx.Namespace,
+				Name:      ctx.Name,
 			}
 
+			route := gwResources.HTTPRoutes[nn]
+			for i := range route.Spec.Rules[idx].Matches {
+				if route.Spec.Rules[idx].Matches[i].Path != nil {
+					route.Spec.Rules[idx].Matches[i].Path.Type = ptr.To(gwapiv1.PathMatchRegularExpression)
+				}
+			}
+			gwResources.HTTPRoutes[nn] = route
+
 			regexIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted regex annotations of ingress %s/%s",
+			notify(notifications.InfoNotification, fmt.Sprintf("converted Regex annotations of ingress %s/%s",
 				regexIR.GetSource().IngressNN.Namespace, regexIR.GetSource().IngressNN.Name),
 				&ctx.HTTPRoute)
 		}
