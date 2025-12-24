@@ -15,6 +15,7 @@ import (
 
 const (
 	rewriteAnnotation = "nginx.ingress.kubernetes.io/rewrite-target"
+	appRootAnnotation = "nginx.ingress.kubernetes.io/app-root"
 )
 
 func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
@@ -70,6 +71,29 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 					efMap[ruleIdx].SetSource(source)
 
 					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
+						&emitterHTTPRouteContext.HTTPRoute)
+				}
+
+				if val := ingress.Annotations[appRootAnnotation]; val != "" {
+					if emitterHTTPRouteContext.ExtensionFeatures == nil {
+						emitterHTTPRouteContext.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
+					}
+					efMap, exists := emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey]
+					if !exists {
+						efMap = make(map[int]emitterir.ExtensionFeatureIR)
+						emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey] = efMap
+					}
+					efMap[ruleIdx] = &emitterir.RewriteFeatureIR{
+						Target: val,
+					}
+
+					source := &emitterir.ExtensionFeatureSource{
+						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
+						AnnotationKey: appRootAnnotation,
+					}
+					efMap[ruleIdx].SetSource(source)
+
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite (app-root) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
 						&emitterHTTPRouteContext.HTTPRoute)
 				}
 			}
