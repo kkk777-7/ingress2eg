@@ -52,46 +52,28 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 				ingress := *source.Ingress
 
 				if val := ingress.Annotations[rewriteAnnotation]; val != "" {
-					if emitterHTTPRouteContext.ExtensionFeatures == nil {
-						emitterHTTPRouteContext.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
-					}
-					efMap, exists := emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey]
-					if !exists {
-						efMap = make(map[int]emitterir.ExtensionFeatureIR)
-						emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey] = efMap
-					}
-					efMap[ruleIdx] = &emitterir.RewriteFeatureIR{
-						Target: val,
-					}
+					rewriteIR := getOrCreateRewriteIR(&emitterHTTPRouteContext, ruleIdx)
+					rewriteIR.Target = val
 
 					source := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
 						AnnotationKey: rewriteAnnotation,
 					}
-					efMap[ruleIdx].SetSource(source)
+					rewriteIR.SetSource(source)
 
 					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
 						&emitterHTTPRouteContext.HTTPRoute)
 				}
 
 				if val := ingress.Annotations[appRootAnnotation]; val != "" {
-					if emitterHTTPRouteContext.ExtensionFeatures == nil {
-						emitterHTTPRouteContext.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
-					}
-					efMap, exists := emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey]
-					if !exists {
-						efMap = make(map[int]emitterir.ExtensionFeatureIR)
-						emitterHTTPRouteContext.ExtensionFeatures[emitterir.RewriteFeatureKey] = efMap
-					}
-					efMap[ruleIdx] = &emitterir.RewriteFeatureIR{
-						Target: val,
-					}
+					rewriteIR := getOrCreateRewriteIR(&emitterHTTPRouteContext, ruleIdx)
+					rewriteIR.Target = val
 
 					source := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
 						AnnotationKey: appRootAnnotation,
 					}
-					efMap[ruleIdx].SetSource(source)
+					rewriteIR.SetSource(source)
 
 					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite (app-root) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
 						&emitterHTTPRouteContext.HTTPRoute)
@@ -105,4 +87,22 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 		return errList
 	}
 	return nil
+}
+
+func getOrCreateRewriteIR(ctx *emitterir.HTTPRouteContext, ruleIdx int) *emitterir.RewriteFeatureIR {
+	if ctx.ExtensionFeatures == nil {
+		ctx.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
+	}
+	efMap, exists := ctx.ExtensionFeatures[emitterir.RewriteFeatureKey]
+	if !exists {
+		efMap = make(map[int]emitterir.ExtensionFeatureIR)
+		ctx.ExtensionFeatures[emitterir.RewriteFeatureKey] = efMap
+	}
+
+	ef, exists := efMap[ruleIdx]
+	if !exists {
+		ef = &emitterir.RewriteFeatureIR{}
+		efMap[ruleIdx] = ef
+	}
+	return ef.(*emitterir.RewriteFeatureIR)
 }

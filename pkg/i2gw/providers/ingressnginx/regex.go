@@ -51,24 +51,16 @@ func regexFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]m
 				ingress := *source.Ingress
 
 				if val := ingress.Annotations[regexAnnotation]; val == "true" {
-					if emitterHTTPRouteContext.ExtensionFeatures == nil {
-						emitterHTTPRouteContext.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
-					}
-					efMap, exists := emitterHTTPRouteContext.ExtensionFeatures[emitterir.RegexFeatureKey]
-					if !exists {
-						efMap = make(map[int]emitterir.ExtensionFeatureIR)
-						emitterHTTPRouteContext.ExtensionFeatures[emitterir.RegexFeatureKey] = efMap
-					}
-					efMap[ruleIdx] = &emitterir.RegexFeatureIR{}
+					regexIR := getOrCreateRegexIR(&emitterHTTPRouteContext, ruleIdx)
 					if source.Path != nil {
-						efMap[ruleIdx].(*emitterir.RegexFeatureIR).PathPattern = source.Path.Path
+						regexIR.PathPattern = source.Path.Path
 					}
 
 					extSource := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
 						AnnotationKey: regexAnnotation,
 					}
-					efMap[ruleIdx].SetSource(extSource)
+					regexIR.SetSource(extSource)
 
 					notify(notifications.InfoNotification, fmt.Sprintf("parsed Regex annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
 						&emitterHTTPRouteContext.HTTPRoute)
@@ -82,4 +74,22 @@ func regexFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]m
 		return errList
 	}
 	return nil
+}
+
+func getOrCreateRegexIR(ctx *emitterir.HTTPRouteContext, ruleIdx int) *emitterir.RegexFeatureIR {
+	if ctx.ExtensionFeatures == nil {
+		ctx.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
+	}
+	efMap, exists := ctx.ExtensionFeatures[emitterir.RegexFeatureKey]
+	if !exists {
+		efMap = make(map[int]emitterir.ExtensionFeatureIR)
+		ctx.ExtensionFeatures[emitterir.RegexFeatureKey] = efMap
+	}
+
+	ef, exists := efMap[ruleIdx]
+	if !exists {
+		ef = &emitterir.RegexFeatureIR{}
+		efMap[ruleIdx] = ef
+	}
+	return ef.(*emitterir.RegexFeatureIR)
 }
