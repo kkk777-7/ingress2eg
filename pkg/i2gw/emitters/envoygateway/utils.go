@@ -124,7 +124,7 @@ func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.Backen
 	// Extract port
 	var port gwapiv1.PortNumber
 	if parsedURL.Port() != "" {
-		portNum, err := strconv.Atoi(parsedURL.Port())
+		portNum, err := strconv.ParseInt(parsedURL.Port(), 10, 32)
 		if err != nil {
 			return nil, fmt.Errorf("invalid port number: %w", err)
 		}
