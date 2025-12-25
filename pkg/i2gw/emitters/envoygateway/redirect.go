@@ -2,9 +2,6 @@ package envoygateway_emitter
 
 import (
 	"fmt"
-	"net/url"
-	"strconv"
-	"strings"
 
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -14,66 +11,6 @@ import (
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
 )
-
-// redirectURLComponents represents the parsed components of a redirect URL
-type redirectURLComponents struct {
-	scheme   *string
-	hostname *gwapiv1.PreciseHostname
-	port     *gwapiv1.PortNumber
-	path     *gwapiv1.HTTPPathModifier
-}
-
-// parseRedirectURL parses a redirect URL string into Gateway API components.
-// Expects a full URL with scheme (e.g., "https://example.com/path").
-func parseRedirectURL(urlStr string) (*redirectURLComponents, error) {
-	components := &redirectURLComponents{}
-
-	// Validate that URL contains a scheme
-	if !strings.Contains(urlStr, "://") {
-		return nil, fmt.Errorf("URL must include scheme (e.g., https://), got: %s", urlStr)
-	}
-
-	parsedURL, err := url.Parse(urlStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %w", err)
-	}
-
-	// Validate scheme
-	if parsedURL.Scheme == "" {
-		return nil, fmt.Errorf("URL must include scheme (e.g., https://)")
-	}
-
-	// Validate hostname
-	if parsedURL.Hostname() == "" {
-		return nil, fmt.Errorf("URL must include hostname")
-	}
-
-	// Set scheme
-	components.scheme = ptr.To(parsedURL.Scheme)
-
-	// Set hostname
-	hostname := gwapiv1.PreciseHostname(parsedURL.Hostname())
-	components.hostname = &hostname
-
-	// Set port
-	if parsedURL.Port() != "" {
-		port, err := strconv.ParseInt(parsedURL.Port(), 10, 32)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse port: %w", err)
-		}
-		portNum := gwapiv1.PortNumber(port)
-		components.port = &portNum
-	}
-
-	// Set path (only if it's not just "/")
-	if parsedURL.Path != "" && parsedURL.Path != "/" {
-		components.path = &gwapiv1.HTTPPathModifier{
-			Type:            gwapiv1.FullPathHTTPPathModifier,
-			ReplaceFullPath: ptr.To(parsedURL.Path),
-		}
-	}
-	return components, nil
-}
 
 func (e *Emitter) EmitRedirect(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
 	for _, ctx := range ir.HTTPRoutes {

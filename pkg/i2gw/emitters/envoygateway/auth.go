@@ -110,3 +110,48 @@ func (e *Emitter) EmitMTLS(ir emitterir.EmitterIR, gwResources *i2gw.GatewayReso
 		}
 	}
 }
+
+func (e *Emitter) EmitExternalAuth(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
+	for _, ctx := range ir.HTTPRoutes {
+		ctx.MergeExtensionFeature(emitterir.ExternalAuthFeatureKey)
+
+		for idx, ir := range ctx.ExtensionFeatures[emitterir.ExternalAuthFeatureKey] {
+			if ir.IsParsed() {
+				continue
+			}
+			externalAuthIR := ir.(*emitterir.ExternalAuthFeatureIR)
+
+			var sectionName *gwapiv1.SectionName
+			if idx != emitterir.RouteRuleAllIndex && idx < len(ctx.Spec.Rules) {
+				sectionName = ctx.Spec.Rules[idx].Name
+			}
+
+			securityPolicy := e.getOrBuildSecurityPolicy(ctx, sectionName, idx)
+
+			backendRef, err := parseK8sServiceURL(externalAuthIR.Url, ctx.Namespace)
+			if err != nil {
+				notify(notifications.ErrorNotification, fmt.Sprintf("Failed to parse ExternalAuth URL for Ingress %s/%s, Only Kubernetes service domains are supported: %v",
+					externalAuthIR.GetSource().IngressNN.Namespace, externalAuthIR.GetSource().IngressNN.Name, err),
+					&ctx.HTTPRoute)
+				continue
+			}
+			securityPolicy.Spec.ExtAuth = &egapiv1a1.ExtAuth{
+				HTTP: &egapiv1a1.HTTPExtAuthService{
+					BackendCluster: egapiv1a1.BackendCluster{
+						BackendRefs: []egapiv1a1.BackendRef{
+							{
+								BackendObjectReference: *backendRef,
+							},
+						},
+					},
+					HeadersToBackend: externalAuthIR.AllowedResponseHeaders,
+				},
+			}
+
+			externalAuthIR.SetParsed()
+			notify(notifications.InfoNotification, fmt.Sprintf("converted ExternalAuth annotations of ingress %s/%s",
+				externalAuthIR.GetSource().IngressNN.Namespace, externalAuthIR.GetSource().IngressNN.Name),
+				&ctx.HTTPRoute)
+		}
+	}
+}
