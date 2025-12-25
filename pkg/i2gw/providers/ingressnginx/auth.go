@@ -21,7 +21,9 @@ const (
 	authTypeAnnotation   = "nginx.ingress.kubernetes.io/auth-type"
 	authSecretAnnotation = "nginx.ingress.kubernetes.io/auth-secret" // #nosec G101
 	// Format: <namespace>/<secret-name>
-	authTlsSecretAnnotation = "nginx.ingress.kubernetes.io/auth-tls-secret" // #nosec G101
+	authTlsSecretAnnotation       = "nginx.ingress.kubernetes.io/auth-tls-secret" // #nosec G101
+	authUrlAnnotation             = "nginx.ingress.kubernetes.io/auth-url"
+	authResponseHeadersAnnotation = "nginx.ingress.kubernetes.io/auth-response-headers"
 )
 
 func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
@@ -123,6 +125,28 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 
 					eir.Gateways[gwKey] = emitterGatewayContext
 				}
+
+				if val := ingress.Annotations[authUrlAnnotation]; val != "" {
+					externalAuthIR := getOrCreateExternalAuthIR(&emitterHTTPRouteContext, ruleIdx)
+					externalAuthIR.Url = val
+
+					if headers := ingress.Annotations[authResponseHeadersAnnotation]; headers != "" {
+						headerList := strings.Split(headers, ",")
+						for i, h := range headerList {
+							headerList[i] = strings.TrimSpace(h)
+						}
+						externalAuthIR.AllowedResponseHeaders = headerList
+					}
+
+					extSource := &emitterir.ExtensionFeatureSource{
+						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
+						AnnotationKey: []string{authUrlAnnotation, authResponseHeadersAnnotation},
+					}
+					externalAuthIR.SetSource(extSource)
+
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed Auth (auth-url, auth-response-headers) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
+						&emitterHTTPRouteContext.HTTPRoute)
+				}
 			}
 		}
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
@@ -168,6 +192,24 @@ func getOrCreateMTLSAuthIR(ctx *emitterir.GatewayContext, listenerIdx int) *emit
 		efMap[listenerIdx] = ef
 	}
 	return ef.(*emitterir.MTLSFeatureIR)
+}
+
+func getOrCreateExternalAuthIR(ctx *emitterir.HTTPRouteContext, ruleIdx int) *emitterir.ExternalAuthFeatureIR {
+	if ctx.ExtensionFeatures == nil {
+		ctx.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
+	}
+	efMap, exists := ctx.ExtensionFeatures[emitterir.ExternalAuthFeatureKey]
+	if !exists {
+		efMap = make(map[int]emitterir.ExtensionFeatureIR)
+		ctx.ExtensionFeatures[emitterir.ExternalAuthFeatureKey] = efMap
+	}
+
+	ef, exists := efMap[ruleIdx]
+	if !exists {
+		ef = &emitterir.ExternalAuthFeatureIR{}
+		efMap[ruleIdx] = ef
+	}
+	return ef.(*emitterir.ExternalAuthFeatureIR)
 }
 
 // findMatchingGatewayListenerIndex finds a Gateway HTTPS listener index that matches the given hostname.
