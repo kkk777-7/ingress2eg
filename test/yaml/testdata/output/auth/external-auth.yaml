@@ -51,6 +51,7 @@ spec:
       headersToBackend:
       - X-Auth-User
       - X-Auth-Email
+      path: /verify
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute

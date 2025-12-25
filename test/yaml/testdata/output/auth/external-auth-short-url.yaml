@@ -50,6 +50,7 @@ spec:
         port: 8080
       headersToBackend:
       - X-Auth-User
+      path: /verify
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
