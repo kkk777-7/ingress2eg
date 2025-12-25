@@ -15,6 +15,12 @@ var (
 		Kind:    "HTTPRoute",
 	}
 
+	ReferenceGrantGVK = schema.GroupVersionKind{
+		Group:   "gateway.networking.k8s.io",
+		Version: "v1beta1",
+		Kind:    "ReferenceGrant",
+	}
+
 	SecretGVK = schema.GroupVersionKind{
 		Group:   "",
 		Version: "v1",
@@ -31,5 +37,11 @@ var (
 		Group:   "gateway.envoyproxy.io",
 		Version: "v1alpha1",
 		Kind:    "SecurityPolicy",
+	}
+
+	ClientTrafficPolicyGVK = schema.GroupVersionKind{
+		Group:   "gateway.envoyproxy.io",
+		Version: "v1alpha1",
+		Kind:    "ClientTrafficPolicy",
 	}
 )

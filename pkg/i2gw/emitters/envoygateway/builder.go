@@ -12,12 +12,14 @@ import (
 )
 
 type BuilderMap struct {
-	SecurityPolices map[types.NamespacedName]*egapiv1a1.SecurityPolicy
+	SecurityPolicies      map[types.NamespacedName]*egapiv1a1.SecurityPolicy
+	ClientTrafficPolicies map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy
 }
 
 func NewBuilderMap() *BuilderMap {
 	return &BuilderMap{
-		SecurityPolices: make(map[types.NamespacedName]*egapiv1a1.SecurityPolicy),
+		SecurityPolicies:      make(map[types.NamespacedName]*egapiv1a1.SecurityPolicy),
+		ClientTrafficPolicies: make(map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy),
 	}
 }
 
@@ -50,14 +52,14 @@ func buildRewriteHTTPRouteFilter(
 
 func (e *Emitter) getOrBuildSecurityPolicy(ctx emitterir.HTTPRouteContext, sectionName *gwapiv1.SectionName, ruleIdx int) *egapiv1a1.SecurityPolicy {
 	name := fmt.Sprintf("%s-%d", ctx.Name, ruleIdx)
-	if ruleIdx == -1 {
+	if ruleIdx == emitterir.RouteRuleAllIndex {
 		name = ctx.Name
 	}
 	key := types.NamespacedName{
 		Name:      name,
 		Namespace: ctx.Namespace,
 	}
-	policy, exist := e.builderMap.SecurityPolices[key]
+	policy, exist := e.builderMap.SecurityPolicies[key]
 	if exist {
 		return policy
 	}
@@ -84,6 +86,46 @@ func (e *Emitter) getOrBuildSecurityPolicy(ctx emitterir.HTTPRouteContext, secti
 	}
 	securityPolicy.SetGroupVersionKind(SecurityPolicyGVK)
 
-	e.builderMap.SecurityPolices[key] = securityPolicy
+	e.builderMap.SecurityPolicies[key] = securityPolicy
 	return securityPolicy
+}
+
+func (e *Emitter) getOrBuildClientTrafficPolicy(ctx emitterir.GatewayContext, sectionName *gwapiv1.SectionName, listenerIdx int) *egapiv1a1.ClientTrafficPolicy {
+	name := fmt.Sprintf("%s-%d", ctx.Name, listenerIdx)
+	if listenerIdx == emitterir.ListenerAllIndex {
+		name = ctx.Name
+	}
+	key := types.NamespacedName{
+		Name:      name,
+		Namespace: ctx.Namespace,
+	}
+	policy, exist := e.builderMap.ClientTrafficPolicies[key]
+	if exist {
+		return policy
+	}
+
+	clientTrafficPolicy := &egapiv1a1.ClientTrafficPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ctx.Namespace,
+		},
+		Spec: egapiv1a1.ClientTrafficPolicySpec{
+			PolicyTargetReferences: egapiv1a1.PolicyTargetReferences{
+				TargetRefs: []gwapiv1.LocalPolicyTargetReferenceWithSectionName{
+					{
+						LocalPolicyTargetReference: gwapiv1.LocalPolicyTargetReference{
+							Group: gwapiv1.Group(GatewayGVK.Group),
+							Kind:  gwapiv1.Kind(GatewayGVK.Kind),
+							Name:  gwapiv1.ObjectName(ctx.Name),
+						},
+						SectionName: sectionName,
+					},
+				},
+			},
+		},
+	}
+	clientTrafficPolicy.SetGroupVersionKind(ClientTrafficPolicyGVK)
+
+	e.builderMap.ClientTrafficPolicies[key] = clientTrafficPolicy
+	return clientTrafficPolicy
 }

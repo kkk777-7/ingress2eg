@@ -24,7 +24,8 @@ import (
 )
 
 const (
-	RouteAllIndex = -1
+	ListenerAllIndex  = -1
+	RouteRuleAllIndex = -1
 )
 
 // EmitterIR holds specifications of Gateway Objects for supporting Ingress extensions,
@@ -47,13 +48,46 @@ type EmitterIR struct {
 
 type GatewayContext struct {
 	gwapiv1.Gateway
+
+	// ExtensionFeatures maps extension feature keys to listener-specific features.
+	// The inner map key is the listener index. Use ListenerAllIndex (-1) for gateway-level features.
+	ExtensionFeatures map[ExtensionFeatureKey]map[int]ExtensionFeatureIR
+}
+
+// MergeExtensionFeature merges extension features across all listeners into a gateway-level feature
+// if all listeners have identical extension features for the given key.
+// This consolidates redundant listener-level features into a single gateway-level feature.
+func (g *GatewayContext) MergeExtensionFeature(key ExtensionFeatureKey) {
+	if g.ExtensionFeatures == nil {
+		return
+	}
+	efMap, ok := g.ExtensionFeatures[key]
+	if !ok {
+		return
+	}
+	if len(efMap) != len(g.Spec.Listeners) {
+		return
+	}
+
+	var first *ExtensionFeatureIR
+	for _, feature := range efMap {
+		if first == nil {
+			first = &feature
+			continue
+		}
+		if !(*first).Equals(feature) {
+			return
+		}
+	}
+
+	g.ExtensionFeatures[key] = map[int]ExtensionFeatureIR{ListenerAllIndex: *first}
 }
 
 type HTTPRouteContext struct {
 	gwapiv1.HTTPRoute
 
 	// ExtensionFeatures maps extension feature keys to rule-specific features.
-	// The inner map key is the rule index. Use RouteAllIndex (-1) for route-level features.
+	// The inner map key is the rule index. Use RouteRuleAllIndex (-1) for route-level features.
 	ExtensionFeatures map[ExtensionFeatureKey]map[int]ExtensionFeatureIR
 }
 
@@ -83,7 +117,7 @@ func (h *HTTPRouteContext) MergeExtensionFeature(key ExtensionFeatureKey) {
 		}
 	}
 
-	h.ExtensionFeatures[key] = map[int]ExtensionFeatureIR{RouteAllIndex: *first}
+	h.ExtensionFeatures[key] = map[int]ExtensionFeatureIR{RouteRuleAllIndex: *first}
 }
 
 type GatewayClassContext struct {
