@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iprange-ingress1
+  namespace: namespace1
+  annotations:
+    nginx.ingress.kubernetes.io/whitelist-source-range: 10.0.0.0/24
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: service-ingress1
+            port:
+              number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iprange-ingress2
+  namespace: namespace1
+  annotations:
+    nginx.ingress.kubernetes.io/denylist-source-range: 192.168.100.0/24
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /admin
+        pathType: Prefix
+        backend:
+          service:
+            name: service-ingress1
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-ingress1
+  namespace: namespace1
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 80

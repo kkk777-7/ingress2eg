@@ -40,6 +40,7 @@ func newResourcesToIRConverter() *resourcesToIRConverter {
 			rewriteFeature,
 			redirectFeature,
 			authFeature,
+			ipRangeFeature,
 		},
 		implementationSpecificOptions: i2gw.ProviderImplementationSpecificOptions{
 			ToImplementationSpecificHTTPPathTypeMatch: implementationSpecificHTTPPathTypeMatch,
