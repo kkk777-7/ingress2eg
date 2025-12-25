@@ -276,10 +276,38 @@ func readGatewayResourcesFromFile(t *testing.T, filename string) (*i2gw.GatewayR
 			}] = referenceGrant
 		default:
 			// Store unknown resources as GatewayExtensions
+			normalizeUnstructuredTypes(obj)
 			res.GatewayExtensions = append(res.GatewayExtensions, *obj)
 		}
 	}
 	return &res, nil
+}
+
+// normalizeUnstructuredTypes converts int64 to uint64 for fields that should be uint in the Go structs.
+// This is necessary because YAML unmarshaling defaults to int64 for numbers, but Go structs may use uint.
+func normalizeUnstructuredTypes(obj *unstructured.Unstructured) {
+	content := obj.UnstructuredContent()
+
+	// Normalize BackendTrafficPolicy rate limit requests field
+	if obj.GetKind() == "BackendTrafficPolicy" {
+		if spec, ok := content["spec"].(map[string]interface{}); ok {
+			if rateLimit, ok := spec["rateLimit"].(map[string]interface{}); ok {
+				if local, ok := rateLimit["local"].(map[string]interface{}); ok {
+					if rules, ok := local["rules"].([]interface{}); ok {
+						for _, rule := range rules {
+							if ruleMap, ok := rule.(map[string]interface{}); ok {
+								if limit, ok := ruleMap["limit"].(map[string]interface{}); ok {
+									if requests, ok := limit["requests"].(int64); ok {
+										limit["requests"] = uint64(requests)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.GatewayResources) error {
