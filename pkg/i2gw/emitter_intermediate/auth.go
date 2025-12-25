@@ -1,7 +1,9 @@
 package emitterir
 
-var BasicAuthFeatureKey ExtensionFeatureKey = "BasicAuth"
-var MTLSFeatureKey ExtensionFeatureKey = "mTLS"
+var (
+	BasicAuthFeatureKey ExtensionFeatureKey = "BasicAuth"
+	MTLSFeatureKey      ExtensionFeatureKey = "mTLS"
+)
 
 var _ ExtensionFeatureIR = &BasicAuthFeatureIR{}
 

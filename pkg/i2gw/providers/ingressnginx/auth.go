@@ -21,7 +21,7 @@ const (
 	authTypeAnnotation   = "nginx.ingress.kubernetes.io/auth-type"
 	authSecretAnnotation = "nginx.ingress.kubernetes.io/auth-secret" // #nosec G101
 	// Format: <namespace>/<secret-name>
-	authTlsSecretAnnotation = "nginx.ingress.kubernetes.io/auth-tls-secret"
+	authTlsSecretAnnotation = "nginx.ingress.kubernetes.io/auth-tls-secret" // #nosec G101
 )
 
 func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
@@ -88,12 +88,12 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 				if val := ingress.Annotations[authTlsSecretAnnotation]; val != "" {
 					gwKey := types.NamespacedName{
 						Name:      string(emitterHTTPRouteContext.Spec.ParentRefs[0].Name),
-						Namespace: ptr.Deref((*string)(emitterHTTPRouteContext.Spec.ParentRefs[0].Namespace), emitterHTTPRouteContext.HTTPRoute.Namespace),
+						Namespace: ptr.Deref((*string)(emitterHTTPRouteContext.Spec.ParentRefs[0].Namespace), emitterHTTPRouteContext.Namespace),
 					}
 					emitterGatewayContext, exists := eir.Gateways[gwKey]
 					if !exists {
 						notify(notifications.ErrorNotification, fmt.Sprintf("cannot find Gateway %s referenced by HTTPRoute %s/%s for Auth TLS configuration",
-							gwKey.String(), emitterHTTPRouteContext.HTTPRoute.Namespace, emitterHTTPRouteContext.HTTPRoute.Name),
+							gwKey.String(), emitterHTTPRouteContext.Namespace, emitterHTTPRouteContext.Name),
 							&emitterHTTPRouteContext.HTTPRoute)
 						continue
 					}

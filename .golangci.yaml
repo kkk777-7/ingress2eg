@@ -31,7 +31,6 @@ linters:
     - ineffassign
     - errcheck
     - errorlint
-    - dupl
     - unconvert
     - unused
   settings:
