@@ -4,8 +4,11 @@ import (
 	"fmt"
 
 	egapiv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gwapiv1b1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -73,6 +76,32 @@ func (e *Emitter) EmitMTLS(ir emitterir.EmitterIR, gwResources *i2gw.GatewayReso
 					Namespace: ptr.To(gwapiv1.Namespace(mtlsIR.Namespace)),
 				},
 			)
+			if clientTrafficPolicy.Namespace != mtlsIR.Namespace {
+				refgrant := &gwapiv1b1.ReferenceGrant{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fmt.Sprintf("%s-mtls", clientTrafficPolicy.Name),
+						Namespace: mtlsIR.Namespace,
+					},
+					Spec: gwapiv1b1.ReferenceGrantSpec{
+						From: []gwapiv1b1.ReferenceGrantFrom{
+							{
+								Group:     gwapiv1b1.Group(SecurityPolicyGVK.Group),
+								Kind:      gwapiv1.Kind(SecurityPolicyGVK.Kind),
+								Namespace: gwapiv1b1.Namespace(clientTrafficPolicy.Namespace),
+							},
+						},
+						To: []gwapiv1b1.ReferenceGrantTo{
+							{
+								Group: gwapiv1b1.Group(SecretGVK.Group),
+								Kind:  gwapiv1b1.Kind(SecretGVK.Kind),
+								Name:  ptr.To(gwapiv1b1.ObjectName(mtlsIR.Name)),
+							},
+						},
+					},
+				}
+				refgrant.SetGroupVersionKind(ReferenceGrantGVK)
+				gwResources.ReferenceGrants[types.NamespacedName{Namespace: refgrant.Namespace, Name: refgrant.Name}] = *refgrant
+			}
 
 			mtlsIR.SetParsed()
 			notify(notifications.InfoNotification, fmt.Sprintf("converted mTLS annotations of ingress %s/%s",
