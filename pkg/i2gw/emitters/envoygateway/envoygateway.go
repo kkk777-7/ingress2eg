@@ -46,6 +46,7 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 	e.EmitMTLS(ir, gwResources)
 	e.EmitExternalAuth(ir, gwResources)
 	e.EmitIpRange(ir, gwResources)
+	e.EmitRateLimit(ir, gwResources)
 
 	for _, securityPolicy := range e.builderMap.SecurityPolicies {
 		obj, err := i2gw.CastToUnstructured(securityPolicy)
@@ -59,6 +60,14 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 		obj, err := i2gw.CastToUnstructured(clientTrafficPolicy)
 		if err != nil {
 			notify(notifications.ErrorNotification, "Failed to cast ClientTrafficPolicy to unstructured", clientTrafficPolicy)
+			continue
+		}
+		gwResources.GatewayExtensions = append(gwResources.GatewayExtensions, *obj)
+	}
+	for _, backendTrafficPolicy := range e.builderMap.BackendTrafficPolicies {
+		obj, err := i2gw.CastToUnstructured(backendTrafficPolicy)
+		if err != nil {
+			notify(notifications.ErrorNotification, "Failed to cast BackendTrafficPolicy to unstructured", backendTrafficPolicy)
 			continue
 		}
 		gwResources.GatewayExtensions = append(gwResources.GatewayExtensions, *obj)
