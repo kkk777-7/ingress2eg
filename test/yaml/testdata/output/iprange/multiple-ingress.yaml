@@ -45,27 +45,6 @@ status:
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
-  name: iprange-ingress1-example-com-1
-  namespace: namespace1
-spec:
-  authorization:
-    defaultAction: Allow
-    rules:
-    - action: Deny
-      principal:
-        clientCIDRs:
-        - 192.168.100.0/24
-  targetRefs:
-  - group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: iprange-ingress1-example-com
-    sectionName: rule-prefix-admin
-status:
-  ancestors: null
----
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: SecurityPolicy
-metadata:
   name: iprange-ingress1-example-com-0
   namespace: namespace1
 spec:
@@ -81,5 +60,26 @@ spec:
     kind: HTTPRoute
     name: iprange-ingress1-example-com
     sectionName: rule-prefix-api
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: iprange-ingress1-example-com-1
+  namespace: namespace1
+spec:
+  authorization:
+    defaultAction: Allow
+    rules:
+    - action: Deny
+      principal:
+        clientCIDRs:
+        - 192.168.100.0/24
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: iprange-ingress1-example-com
+    sectionName: rule-prefix-admin
 status:
   ancestors: null
