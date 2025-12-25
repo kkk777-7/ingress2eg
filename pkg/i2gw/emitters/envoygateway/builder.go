@@ -12,14 +12,16 @@ import (
 )
 
 type BuilderMap struct {
-	SecurityPolicies      map[types.NamespacedName]*egapiv1a1.SecurityPolicy
-	ClientTrafficPolicies map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy
+	SecurityPolicies       map[types.NamespacedName]*egapiv1a1.SecurityPolicy
+	ClientTrafficPolicies  map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy
+	BackendTrafficPolicies map[types.NamespacedName]*egapiv1a1.BackendTrafficPolicy
 }
 
 func NewBuilderMap() *BuilderMap {
 	return &BuilderMap{
-		SecurityPolicies:      make(map[types.NamespacedName]*egapiv1a1.SecurityPolicy),
-		ClientTrafficPolicies: make(map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy),
+		SecurityPolicies:       make(map[types.NamespacedName]*egapiv1a1.SecurityPolicy),
+		ClientTrafficPolicies:  make(map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy),
+		BackendTrafficPolicies: make(map[types.NamespacedName]*egapiv1a1.BackendTrafficPolicy),
 	}
 }
 
@@ -128,4 +130,44 @@ func (e *Emitter) getOrBuildClientTrafficPolicy(ctx emitterir.GatewayContext, se
 
 	e.builderMap.ClientTrafficPolicies[key] = clientTrafficPolicy
 	return clientTrafficPolicy
+}
+
+func (e *Emitter) getOrBuildBackendTrafficPolicy(ctx emitterir.HTTPRouteContext, sectionName *gwapiv1.SectionName, ruleIdx int) *egapiv1a1.BackendTrafficPolicy {
+	name := fmt.Sprintf("%s-%d", ctx.Name, ruleIdx)
+	if ruleIdx == emitterir.RouteRuleAllIndex {
+		name = ctx.Name
+	}
+	key := types.NamespacedName{
+		Name:      name,
+		Namespace: ctx.Namespace,
+	}
+	policy, exist := e.builderMap.BackendTrafficPolicies[key]
+	if exist {
+		return policy
+	}
+
+	backendTrafficPolicy := &egapiv1a1.BackendTrafficPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ctx.Namespace,
+		},
+		Spec: egapiv1a1.BackendTrafficPolicySpec{
+			PolicyTargetReferences: egapiv1a1.PolicyTargetReferences{
+				TargetRefs: []gwapiv1.LocalPolicyTargetReferenceWithSectionName{
+					{
+						LocalPolicyTargetReference: gwapiv1.LocalPolicyTargetReference{
+							Group: gwapiv1.Group(HTTPRouteGVK.Group),
+							Kind:  gwapiv1.Kind(HTTPRouteGVK.Kind),
+							Name:  gwapiv1.ObjectName(ctx.Name),
+						},
+						SectionName: sectionName,
+					},
+				},
+			},
+		},
+	}
+	backendTrafficPolicy.SetGroupVersionKind(BackendTrafficPolicyGVK)
+
+	e.builderMap.BackendTrafficPolicies[key] = backendTrafficPolicy
+	return backendTrafficPolicy
 }
