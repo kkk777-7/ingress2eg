@@ -78,10 +78,10 @@ func parseRedirectURL(urlStr string) (*redirectURLComponents, error) {
 //   - <service-name> (uses defaultNamespace)
 //
 // URL format: http(s)://<hostname>:<port>/<path>
-func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.BackendObjectReference, error) {
+func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.BackendObjectReference, *string, error) {
 	parsedURL, err := url.Parse(urlStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %w", err)
+		return nil, nil, fmt.Errorf("failed to parse URL: %w", err)
 	}
 
 	// Extract hostname and port
@@ -94,7 +94,7 @@ func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.Backen
 	case strings.HasSuffix(hostname, ".svc.cluster.local"):
 		// Format: <service-name>.<namespace>.svc.cluster.local
 		if len(parts) < 5 {
-			return nil, fmt.Errorf("invalid service URL format: %s", hostname)
+			return nil, nil, fmt.Errorf("invalid service URL format: %s", hostname)
 		}
 		serviceName = parts[0]
 		namespace = parts[1]
@@ -102,7 +102,7 @@ func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.Backen
 	case strings.HasSuffix(hostname, ".svc"):
 		// Format: <service-name>.<namespace>.svc
 		if len(parts) < 3 {
-			return nil, fmt.Errorf("invalid service URL format: %s", hostname)
+			return nil, nil, fmt.Errorf("invalid service URL format: %s", hostname)
 		}
 		serviceName = parts[0]
 		namespace = parts[1]
@@ -118,7 +118,7 @@ func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.Backen
 		namespace = defaultNamespace
 
 	default:
-		return nil, fmt.Errorf("unsupported service URL format: %s", hostname)
+		return nil, nil, fmt.Errorf("unsupported service URL format: %s", hostname)
 	}
 
 	// Extract port
@@ -126,7 +126,7 @@ func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.Backen
 	if parsedURL.Port() != "" {
 		portNum, err := strconv.ParseInt(parsedURL.Port(), 10, 32)
 		if err != nil {
-			return nil, fmt.Errorf("invalid port number: %w", err)
+			return nil, nil, fmt.Errorf("invalid port number: %w", err)
 		}
 		port = gwapiv1.PortNumber(portNum)
 	} else {
@@ -138,11 +138,17 @@ func parseK8sServiceURL(urlStr string, defaultNamespace string) (*gwapiv1.Backen
 		}
 	}
 
+	// Extract path
+	var path *string
+	if parsedURL.Path != "" {
+		path = ptr.To(parsedURL.Path)
+	}
+
 	return &gwapiv1.BackendObjectReference{
 		Group:     ptr.To(gwapiv1.Group("")),
 		Kind:      ptr.To(gwapiv1.Kind("Service")),
 		Name:      gwapiv1.ObjectName(serviceName),
 		Namespace: ptr.To(gwapiv1.Namespace(namespace)),
 		Port:      ptr.To(port),
-	}, nil
+	}, path, nil
 }

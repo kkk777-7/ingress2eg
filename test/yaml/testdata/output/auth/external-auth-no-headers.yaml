@@ -48,6 +48,7 @@ spec:
         name: auth-service
         namespace: namespace1
         port: 8080
+      path: /verify
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
