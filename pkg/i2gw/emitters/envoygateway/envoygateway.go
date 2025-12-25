@@ -45,6 +45,7 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 	e.EmitBasicAuth(ir, gwResources)
 	e.EmitMTLS(ir, gwResources)
 	e.EmitExternalAuth(ir, gwResources)
+	e.EmitIpRange(ir, gwResources)
 
 	for _, securityPolicy := range e.builderMap.SecurityPolicies {
 		obj, err := i2gw.CastToUnstructured(securityPolicy)
