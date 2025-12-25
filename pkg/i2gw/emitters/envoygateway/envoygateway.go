@@ -43,11 +43,20 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 	e.EmitRewrite(ir, gwResources)
 	e.EmitRedirect(ir, gwResources)
 	e.EmitBasicAuth(ir, gwResources)
+	e.EmitMTLS(ir, gwResources)
 
-	for _, securityPolicy := range e.builderMap.SecurityPolices {
+	for _, securityPolicy := range e.builderMap.SecurityPolicies {
 		obj, err := i2gw.CastToUnstructured(securityPolicy)
 		if err != nil {
 			notify(notifications.ErrorNotification, "Failed to cast SecurityPolicy to unstructured", securityPolicy)
+			continue
+		}
+		gwResources.GatewayExtensions = append(gwResources.GatewayExtensions, *obj)
+	}
+	for _, clientTrafficPolicy := range e.builderMap.ClientTrafficPolicies {
+		obj, err := i2gw.CastToUnstructured(clientTrafficPolicy)
+		if err != nil {
+			notify(notifications.ErrorNotification, "Failed to cast ClientTrafficPolicy to unstructured", clientTrafficPolicy)
 			continue
 		}
 		gwResources.GatewayExtensions = append(gwResources.GatewayExtensions, *obj)

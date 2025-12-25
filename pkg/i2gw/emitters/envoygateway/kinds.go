@@ -32,4 +32,10 @@ var (
 		Version: "v1alpha1",
 		Kind:    "SecurityPolicy",
 	}
+
+	ClientTrafficPolicyGVK = schema.GroupVersionKind{
+		Group:   "gateway.envoyproxy.io",
+		Version: "v1alpha1",
+		Kind:    "ClientTrafficPolicy",
+	}
 )

@@ -23,7 +23,7 @@ func (e *Emitter) EmitBasicAuth(ir emitterir.EmitterIR, gwResources *i2gw.Gatewa
 			basicAuthIR := ir.(*emitterir.BasicAuthFeatureIR)
 
 			var sectionName *gwapiv1.SectionName
-			if idx != -1 {
+			if idx != emitterir.RouteRuleAllIndex && idx < len(ctx.Spec.Rules) {
 				sectionName = ctx.Spec.Rules[idx].Name
 			}
 
@@ -41,6 +41,43 @@ func (e *Emitter) EmitBasicAuth(ir emitterir.EmitterIR, gwResources *i2gw.Gatewa
 			notify(notifications.InfoNotification, fmt.Sprintf("converted BasicAuth annotations of ingress %s/%s",
 				basicAuthIR.GetSource().IngressNN.Namespace, basicAuthIR.GetSource().IngressNN.Name),
 				&ctx.HTTPRoute)
+		}
+	}
+}
+
+func (e *Emitter) EmitMTLS(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
+	for _, ctx := range ir.Gateways {
+		for idx, ir := range ctx.ExtensionFeatures[emitterir.MTLSFeatureKey] {
+			if ir.IsParsed() {
+				continue
+			}
+			mtlsIR := ir.(*emitterir.MTLSFeatureIR)
+
+			var sectionName *gwapiv1.SectionName
+			if idx != emitterir.ListenerAllIndex && idx < len(ctx.Spec.Listeners) {
+				sectionName = &ctx.Spec.Listeners[idx].Name
+			}
+
+			clientTrafficPolicy := e.getOrBuildClientTrafficPolicy(ctx, sectionName, idx)
+			if clientTrafficPolicy.Spec.TLS == nil {
+				clientTrafficPolicy.Spec.TLS = &egapiv1a1.ClientTLSSettings{}
+			}
+			if clientTrafficPolicy.Spec.TLS.ClientValidation == nil {
+				clientTrafficPolicy.Spec.TLS.ClientValidation = &egapiv1a1.ClientValidationContext{}
+			}
+			clientTrafficPolicy.Spec.TLS.ClientValidation.CACertificateRefs = append(clientTrafficPolicy.Spec.TLS.ClientValidation.CACertificateRefs,
+				gwapiv1.SecretObjectReference{
+					Group:     ptr.To(gwapiv1.Group(SecretGVK.Group)),
+					Kind:      ptr.To(gwapiv1.Kind(SecretGVK.Kind)),
+					Name:      gwapiv1.ObjectName(mtlsIR.Name),
+					Namespace: ptr.To(gwapiv1.Namespace(mtlsIR.Namespace)),
+				},
+			)
+
+			mtlsIR.SetParsed()
+			notify(notifications.InfoNotification, fmt.Sprintf("converted mTLS annotations of ingress %s/%s",
+				mtlsIR.GetSource().IngressNN.Namespace, mtlsIR.GetSource().IngressNN.Name),
+				&ctx.Gateway)
 		}
 	}
 }
