@@ -48,7 +48,7 @@ func (e *Emitter) EmitRateLimit(ir emitterir.EmitterIR, gwResources *i2gw.Gatewa
 			backendTrafficPolicy.Spec.RateLimit.Local.Rules = append(backendTrafficPolicy.Spec.RateLimit.Local.Rules,
 				egapiv1a1.RateLimitRule{
 					Limit: egapiv1a1.RateLimitValue{
-						Requests: uint(rateLimitIR.LimitValue),
+						Requests: rateLimitIR.LimitValue,
 						Unit:     unit,
 					},
 					ClientSelectors: []egapiv1a1.RateLimitSelectCondition{

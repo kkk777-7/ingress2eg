@@ -13,7 +13,7 @@ const (
 
 type RateLimitFeatureIR struct {
 	ExtensionFeatureMetadata
-	LimitValue int
+	LimitValue uint
 	Unit       TimeUnit
 }
 

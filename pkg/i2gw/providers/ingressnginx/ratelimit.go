@@ -62,7 +62,7 @@ func rateLimitFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNa
 					}
 
 					rateLimitIR := getOrCreateRateLimitIR(&emitterHTTPRouteContext, ruleIdx)
-					rateLimitIR.LimitValue = valInt
+					rateLimitIR.LimitValue = uint(valInt)
 					rateLimitIR.Unit = emitterir.MinuteTimeUnit
 
 					extSource := &emitterir.ExtensionFeatureSource{
@@ -86,7 +86,7 @@ func rateLimitFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNa
 					}
 
 					rateLimitIR := getOrCreateRateLimitIR(&emitterHTTPRouteContext, ruleIdx)
-					rateLimitIR.LimitValue = valInt
+					rateLimitIR.LimitValue = uint(valInt)
 					rateLimitIR.Unit = emitterir.SecondTimeUnit
 
 					extSource := &emitterir.ExtensionFeatureSource{
