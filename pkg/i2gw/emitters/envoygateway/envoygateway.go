@@ -48,6 +48,7 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 	e.EmitIpRange(ir, gwResources)
 	e.EmitRateLimit(ir, gwResources)
 	e.EmitBuffer(ir, gwResources)
+	e.EmitCors(ir, gwResources)
 
 	for _, securityPolicy := range e.builderMap.SecurityPolicies {
 		obj, err := i2gw.CastToUnstructured(securityPolicy)
