@@ -67,7 +67,7 @@ func (e *Emitter) processBackendTLS(route *gwapiv1.HTTPRoute, backendTLSIR *emit
 				ClientCertificateRef: &gwapiv1.SecretObjectReference{
 					Group: ptr.To(gwapiv1.Group(SecretGVK.Group)),
 					Kind:  ptr.To(gwapiv1.Kind(SecretGVK.Kind)),
-					Name:  gwapiv1.ObjectName(backendTLSIR.CertificateRef.Name),
+					Name:  backendTLSIR.CertificateRef.Name,
 				},
 			}
 			if backendTLSIR.Sni != "" {

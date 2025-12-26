@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	proxySslSecretAnnotation     = "nginx.ingress.kubernetes.io/proxy-ssl-secret"
+	proxySslSecretAnnotation     = "nginx.ingress.kubernetes.io/proxy-ssl-secret" // #nosec G101
 	proxySslVerifyAnnotation     = "nginx.ingress.kubernetes.io/proxy-ssl-verify"
 	proxySslNameAnnotation       = "nginx.ingress.kubernetes.io/proxy-ssl-name"
 	proxySslServerNameAnnotation = "nginx.ingress.kubernetes.io/proxy-ssl-server-name"
