@@ -100,9 +100,9 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 						continue
 					}
 
-					// Find the HTTPS listener that matches the hostname from the rule group
-					listenerIdx := findMatchingGatewayListenerIndex(&emitterGatewayContext, rg.Host)
-					if listenerIdx == -1 {
+					// Find the HTTPS listeners that match the hostname from the rule group
+					listenerIndices := findMatchingGatewayListenerIndex(&emitterGatewayContext, rg.Host, ptr.To("HTTPS"))
+					if len(listenerIndices) == 0 {
 						notify(notifications.ErrorNotification, fmt.Sprintf("cannot find matching HTTPS listener for hostname %q in Gateway %s for mTLS configuration",
 							rg.Host, gwKey.String()),
 							&emitterHTTPRouteContext.HTTPRoute)
@@ -110,18 +110,20 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 					}
 
 					nn := strings.Split(val, "/")
-					mtlsIR := getOrCreateMTLSAuthIR(&emitterGatewayContext, listenerIdx)
-					mtlsIR.Name = nn[1]
-					mtlsIR.Namespace = nn[0]
+					for _, listenerIdx := range listenerIndices {
+						mtlsIR := getOrCreateMTLSAuthIR(&emitterGatewayContext, listenerIdx)
+						mtlsIR.Name = nn[1]
+						mtlsIR.Namespace = nn[0]
 
-					extSource := &emitterir.ExtensionFeatureSource{
-						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: []string{authTlsSecretAnnotation},
+						extSource := &emitterir.ExtensionFeatureSource{
+							IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
+							AnnotationKey: []string{authTlsSecretAnnotation},
+						}
+						mtlsIR.SetSource(extSource)
+
+						notify(notifications.InfoNotification, fmt.Sprintf("parsed Auth (tls-secret) annotation of ingress %s/%s", ingress.Namespace, ingress.Name),
+							&emitterHTTPRouteContext.HTTPRoute)
 					}
-					mtlsIR.SetSource(extSource)
-
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Auth (tls-secret) annotation of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
 
 					eir.Gateways[gwKey] = emitterGatewayContext
 				}
@@ -222,27 +224,27 @@ func getOrCreateExternalAuthIR(ctx *emitterir.HTTPRouteContext, ruleIdx int) *em
 // - If hostname is specified, matches the first HTTPS listener with exact hostname match
 //
 // Returns the listener index, or -1 if no match is found.
-func findMatchingGatewayListenerIndex(gateway *emitterir.GatewayContext, hostname string) int {
+func findMatchingGatewayListenerIndex(gateway *emitterir.GatewayContext, hostname string, specifyProtocol *string) []int {
+	var matchingIndices []int
+
 	for listenerIdx, listener := range gateway.Spec.Listeners {
-		// Only consider HTTPS listeners for mTLS
-		if listener.Protocol != gwapiv1.HTTPSProtocolType {
+		if specifyProtocol != nil && listener.Protocol != gwapiv1.ProtocolType(*specifyProtocol) {
 			continue
 		}
 
 		// If hostname is empty, match wildcard listeners (hostname == nil)
 		if hostname == "" {
 			if listener.Hostname == nil {
-				return listenerIdx
+				matchingIndices = append(matchingIndices, listenerIdx)
 			}
 			continue
 		}
 
 		// If hostname is specified, match exact hostname
 		if listener.Hostname != nil && string(*listener.Hostname) == hostname {
-			return listenerIdx
+			matchingIndices = append(matchingIndices, listenerIdx)
 		}
 	}
 
-	// No matching listener found
-	return -1
+	return matchingIndices
 }
