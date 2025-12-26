@@ -6,6 +6,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -16,6 +17,7 @@ import (
 
 const (
 	forwardedPrefixAnnotation = "nginx.ingress.kubernetes.io/x-forwarded-prefix"
+	upstreamvHostAnnotation   = "nginx.ingress.kubernetes.io/upstream-vhost"
 )
 
 func headerFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
@@ -67,6 +69,20 @@ func headerFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 					)
 
 					notify(notifications.InfoNotification, fmt.Sprintf("parsed Header (x-forwarded-prefix) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
+						&emitterHTTPRouteContext.HTTPRoute)
+				}
+
+				if val := ingress.Annotations[upstreamvHostAnnotation]; val != "" {
+					emitterHTTPRouteContext.Spec.Rules[ruleIdx].Filters = append(emitterHTTPRouteContext.Spec.Rules[ruleIdx].Filters,
+						gwapiv1.HTTPRouteFilter{
+							Type: gwapiv1.HTTPRouteFilterURLRewrite,
+							URLRewrite: &gwapiv1.HTTPURLRewriteFilter{
+								Hostname: ptr.To(gwapiv1.PreciseHostname(val)),
+							},
+						},
+					)
+
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed Header (upstream-vhost) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
 						&emitterHTTPRouteContext.HTTPRoute)
 				}
 			}

@@ -1,0 +1,55 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: example.com
+    name: example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: forwarded-prefix-ingress1-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: service-ingress1
+      port: 80
+    filters:
+    - requestHeaderModifier:
+        add:
+        - name: X-Forwarded-Prefix
+          value: /v1
+      type: RequestHeaderModifier
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    name: rule-prefix-api
+  - backendRefs:
+    - name: service-ingress1
+      port: 80
+    filters:
+    - requestHeaderModifier:
+        add:
+        - name: X-Forwarded-Prefix
+          value: /v2
+      type: RequestHeaderModifier
+    matches:
+    - path:
+        type: PathPrefix
+        value: /admin
+    name: rule-prefix-admin
+status:
+  parents: []
