@@ -22,7 +22,7 @@ const (
 	corsAllowMethodsAnnotation     = "nginx.ingress.kubernetes.io/cors-allow-methods"
 	corsAllowHeadersAnnotation     = "nginx.ingress.kubernetes.io/cors-allow-headers"
 	corsExposeHeadersAnnotation    = "nginx.ingress.kubernetes.io/cors-expose-headers"
-	corsAllowCredentialsAnnotation = "nginx.ingress.kubernetes.io/cors-allow-credentials"
+	corsAllowCredentialsAnnotation = "nginx.ingress.kubernetes.io/cors-allow-credentials" // #nosec G101
 	corsMaxAgeAnnotation           = "nginx.ingress.kubernetes.io/cors-max-age"
 )
 
