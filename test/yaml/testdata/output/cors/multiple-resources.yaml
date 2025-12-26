@@ -1,0 +1,82 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: example.com
+    name: example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cors-ingress1-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: service-ingress1
+      port: 80
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    name: rule-prefix-api
+  - backendRefs:
+    - name: service-ingress1
+      port: 80
+    matches:
+    - path:
+        type: PathPrefix
+        value: /admin
+    name: rule-prefix-admin
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: cors-ingress1-example-com-0
+  namespace: namespace1
+spec:
+  cors:
+    allowMethods:
+    - GET
+    - POST
+    allowOrigins:
+    - https://app1.example.com
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: cors-ingress1-example-com
+    sectionName: rule-prefix-api
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: cors-ingress1-example-com-1
+  namespace: namespace1
+spec:
+  cors:
+    allowCredentials: true
+    allowOrigins:
+    - https://app2.example.com
+    maxAge: "7200"
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: cors-ingress1-example-com
+    sectionName: rule-prefix-admin
+status:
+  ancestors: null
