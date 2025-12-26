@@ -45,6 +45,7 @@ func newResourcesToIRConverter() *resourcesToIRConverter {
 			proxyBufferFeature,
 			headerFeature,
 			corsFeature,
+			backendTLSFeature,
 		},
 		implementationSpecificOptions: i2gw.ProviderImplementationSpecificOptions{
 			ToImplementationSpecificHTTPPathTypeMatch: implementationSpecificHTTPPathTypeMatch,

@@ -12,6 +12,7 @@ import (
 )
 
 type BuilderMap struct {
+	Backends               map[types.NamespacedName]*egapiv1a1.Backend
 	SecurityPolicies       map[types.NamespacedName]*egapiv1a1.SecurityPolicy
 	ClientTrafficPolicies  map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy
 	BackendTrafficPolicies map[types.NamespacedName]*egapiv1a1.BackendTrafficPolicy
@@ -19,6 +20,7 @@ type BuilderMap struct {
 
 func NewBuilderMap() *BuilderMap {
 	return &BuilderMap{
+		Backends:               make(map[types.NamespacedName]*egapiv1a1.Backend),
 		SecurityPolicies:       make(map[types.NamespacedName]*egapiv1a1.SecurityPolicy),
 		ClientTrafficPolicies:  make(map[types.NamespacedName]*egapiv1a1.ClientTrafficPolicy),
 		BackendTrafficPolicies: make(map[types.NamespacedName]*egapiv1a1.BackendTrafficPolicy),
@@ -50,6 +52,42 @@ func buildRewriteHTTPRouteFilter(
 	}
 	filter.SetGroupVersionKind(HTTPRouteFilterGVK)
 	return filter
+}
+
+func (e *Emitter) getOrBuildBackend(httpRouteNN types.NamespacedName, ruleIdx int, backendRef gwapiv1.BackendObjectReference) *egapiv1a1.Backend {
+	name := fmt.Sprintf("%s-%d-%s", httpRouteNN.Name, ruleIdx, backendRef.Name)
+	if ruleIdx == emitterir.RouteRuleAllIndex {
+		name = fmt.Sprintf("%s-%s", httpRouteNN.Name, backendRef.Name)
+	}
+	key := types.NamespacedName{
+		Name:      name,
+		Namespace: httpRouteNN.Namespace,
+	}
+	backend, exist := e.builderMap.Backends[key]
+	if exist {
+		return backend
+	}
+
+	backend = &egapiv1a1.Backend{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: httpRouteNN.Namespace,
+		},
+		Spec: egapiv1a1.BackendSpec{
+			Endpoints: []egapiv1a1.BackendEndpoint{
+				{
+					FQDN: &egapiv1a1.FQDNEndpoint{
+						Hostname: fmt.Sprintf("%s.%s.svc.cluster.local", backendRef.Name, httpRouteNN.Namespace),
+						Port:     *backendRef.Port,
+					},
+				},
+			},
+		},
+	}
+	backend.SetGroupVersionKind(BackendGVK)
+
+	e.builderMap.Backends[key] = backend
+	return backend
 }
 
 func (e *Emitter) getOrBuildSecurityPolicy(ctx emitterir.HTTPRouteContext, sectionName *gwapiv1.SectionName, ruleIdx int) *egapiv1a1.SecurityPolicy {
