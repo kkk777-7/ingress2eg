@@ -33,6 +33,12 @@ var (
 		Kind:    "HTTPRouteFilter",
 	}
 
+	BackendGVK = schema.GroupVersionKind{
+		Group:   "gateway.envoyproxy.io",
+		Version: "v1alpha1",
+		Kind:    "Backend",
+	}
+
 	SecurityPolicyGVK = schema.GroupVersionKind{
 		Group:   "gateway.envoyproxy.io",
 		Version: "v1alpha1",

@@ -49,7 +49,16 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 	e.EmitRateLimit(ir, gwResources)
 	e.EmitBuffer(ir, gwResources)
 	e.EmitCors(ir, gwResources)
+	e.EmitBackendTLS(ir, gwResources)
 
+	for _, backend := range e.builderMap.Backends {
+		obj, err := i2gw.CastToUnstructured(backend)
+		if err != nil {
+			notify(notifications.ErrorNotification, "Failed to cast Backend to unstructured", backend)
+			continue
+		}
+		gwResources.GatewayExtensions = append(gwResources.GatewayExtensions, *obj)
+	}
 	for _, securityPolicy := range e.builderMap.SecurityPolicies {
 		obj, err := i2gw.CastToUnstructured(securityPolicy)
 		if err != nil {

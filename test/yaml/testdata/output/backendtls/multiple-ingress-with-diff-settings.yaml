@@ -1,0 +1,89 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: example.com
+    name: example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: backend-tls-ingress1-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - group: gateway.envoyproxy.io
+      kind: Backend
+      name: backend-tls-ingress1-example-com-0-backend-service
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    name: rule-prefix-api
+  - backendRefs:
+    - group: gateway.envoyproxy.io
+      kind: Backend
+      name: backend-tls-ingress1-example-com-1-backend-service
+    matches:
+    - path:
+        type: PathPrefix
+        value: /admin
+    name: rule-prefix-admin
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: backend-tls-ingress1-example-com-0-backend-service
+  namespace: namespace1
+spec:
+  endpoints:
+  - fqdn:
+      hostname: backend-service.namespace1.svc.cluster.local
+      port: 443
+  tls:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: client-cert1
+    clientCertificateRef:
+      group: ""
+      kind: Secret
+      name: client-cert1
+    sni: backend1.example.com
+status: {}
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: backend-tls-ingress1-example-com-1-backend-service
+  namespace: namespace1
+spec:
+  endpoints:
+  - fqdn:
+      hostname: backend-service.namespace1.svc.cluster.local
+      port: 443
+  tls:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: client-cert2
+    clientCertificateRef:
+      group: ""
+      kind: Secret
+      name: client-cert2
+    sni: backend2.example.com
+status: {}
