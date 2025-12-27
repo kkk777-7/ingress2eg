@@ -113,6 +113,9 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 			continue
 		}
 
+		// Collect new rules to prepend after processing all backend sources
+		var newRulesToPrepend []gwapiv1.HTTPRouteRule
+
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
 				errList = append(errList, field.InternalError(
@@ -197,11 +200,8 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 						}
 						copyRule.BackendRefs = []gwapiv1.HTTPBackendRef{*canaryBackend}
 
-						// Insert copyRule at the beginning of rules
-						emitterHTTPRouteContext.Spec.Rules = append(
-							[]gwapiv1.HTTPRouteRule{*copyRule},
-							emitterHTTPRouteContext.Spec.Rules...,
-						)
+						// Collect rule to prepend later
+						newRulesToPrepend = append(newRulesToPrepend, *copyRule)
 					} else {
 						alwaysRule := emitterHTTPRouteContext.Spec.Rules[ruleIdx].DeepCopy()
 						alwaysRule.Name = ptr.To(gwapiv1.SectionName(fmt.Sprintf("%s-canary-header-always", *alwaysRule.Name)))
@@ -225,11 +225,8 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 						}
 						neverRule.BackendRefs = []gwapiv1.HTTPBackendRef{*nonCanaryBackend}
 
-						// Insert alwaysRule and neverRule at the beginning of rules
-						emitterHTTPRouteContext.Spec.Rules = append(
-							[]gwapiv1.HTTPRouteRule{*alwaysRule, *neverRule},
-							emitterHTTPRouteContext.Spec.Rules...,
-						)
+						// Collect rules to prepend later
+						newRulesToPrepend = append(newRulesToPrepend, *alwaysRule, *neverRule)
 					}
 
 					notify(notifications.InfoNotification, fmt.Sprintf("parsed canary annotations of ingress %s/%s and set header match",
@@ -247,6 +244,12 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 				}
 			}
 		}
+
+		// Prepend all collected header-based canary rules at the beginning
+		if len(newRulesToPrepend) > 0 {
+			emitterHTTPRouteContext.Spec.Rules = append(newRulesToPrepend, emitterHTTPRouteContext.Spec.Rules...)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 
