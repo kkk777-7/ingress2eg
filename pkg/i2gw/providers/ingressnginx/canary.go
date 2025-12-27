@@ -23,6 +23,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -35,12 +36,18 @@ const (
 	canaryAnnotation            = "nginx.ingress.kubernetes.io/canary"
 	canaryWeightAnnotation      = "nginx.ingress.kubernetes.io/canary-weight"
 	canaryWeightTotalAnnotation = "nginx.ingress.kubernetes.io/canary-weight-total"
+	canaryHeaderAnnotation      = "nginx.ingress.kubernetes.io/canary-by-header"
+	canaryHeaderValueAnnotation = "nginx.ingress.kubernetes.io/canary-by-header-value"
 )
 
 // canaryConfig holds the parsed canary configuration from a single Ingress
 type canaryConfig struct {
+	isWeight    bool
+	isHeader    bool
 	weight      int32
 	weightTotal int32
+	header      string
+	headerValue string
 }
 
 // parseCanaryConfig extracts canary weight configuration from an Ingress
@@ -51,6 +58,7 @@ func parseCanaryConfig(ingress *networkingv1.Ingress) (canaryConfig, error) {
 	}
 
 	if weight := ingress.Annotations[canaryWeightAnnotation]; weight != "" {
+		config.isWeight = true
 		w, err := strconv.ParseInt(weight, 10, 32)
 		if err != nil {
 			return config, fmt.Errorf("invalid canary-weight annotation %q: %w", weight, err)
@@ -74,6 +82,14 @@ func parseCanaryConfig(ingress *networkingv1.Ingress) (canaryConfig, error) {
 
 	if config.weight > config.weightTotal {
 		return config, fmt.Errorf("canary-weight (%d) exceeds canary-weight-total (%d)", config.weight, config.weightTotal)
+	}
+
+	if header := ingress.Annotations[canaryHeaderAnnotation]; header != "" {
+		config.isHeader = true
+		config.header = header
+		if headerValue := ingress.Annotations[canaryHeaderValueAnnotation]; headerValue != "" {
+			config.headerValue = headerValue
+		}
 	}
 
 	return config, nil
@@ -168,14 +184,67 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 					continue
 				}
 
-				canaryWeight := canaryConfig.weight
+				if canaryConfig.isHeader {
+					if canaryConfig.headerValue != "" {
+						copyRule := emitterHTTPRouteContext.Spec.Rules[ruleIdx].DeepCopy()
+						copyRule.Name = ptr.To(gwapiv1.SectionName(fmt.Sprintf("%s-canary-header", *copyRule.Name)))
+						for i := range copyRule.Matches {
+							copyRule.Matches[i].Headers = append(copyRule.Matches[i].Headers, gwapiv1.HTTPHeaderMatch{
+								Type:  ptr.To(gwapiv1.HeaderMatchExact),
+								Name:  gwapiv1.HTTPHeaderName(canaryConfig.header),
+								Value: canaryConfig.headerValue,
+							})
+						}
+						copyRule.BackendRefs = []gwapiv1.HTTPBackendRef{*canaryBackend}
 
-				canaryBackend.Weight = &canaryWeight
-				nonCanaryWeight := canaryConfig.weightTotal - canaryWeight
-				nonCanaryBackend.Weight = &nonCanaryWeight
+						// Insert copyRule at the beginning of rules
+						emitterHTTPRouteContext.Spec.Rules = append(
+							[]gwapiv1.HTTPRouteRule{*copyRule},
+							emitterHTTPRouteContext.Spec.Rules...,
+						)
+					} else {
+						alwaysRule := emitterHTTPRouteContext.Spec.Rules[ruleIdx].DeepCopy()
+						alwaysRule.Name = ptr.To(gwapiv1.SectionName(fmt.Sprintf("%s-canary-header-always", *alwaysRule.Name)))
+						for i := range alwaysRule.Matches {
+							alwaysRule.Matches[i].Headers = append(alwaysRule.Matches[i].Headers, gwapiv1.HTTPHeaderMatch{
+								Type:  ptr.To(gwapiv1.HeaderMatchExact),
+								Name:  gwapiv1.HTTPHeaderName(canaryConfig.header),
+								Value: "always",
+							})
+						}
+						alwaysRule.BackendRefs = []gwapiv1.HTTPBackendRef{*canaryBackend}
 
-				notify(notifications.InfoNotification, fmt.Sprintf("parsed canary annotations of ingress %s/%s and set weights (canary: %d, non-canary: %d, total: %d)",
-					canarySourceIngress.Namespace, canarySourceIngress.Name, canaryWeight, nonCanaryWeight, canaryConfig.weightTotal), &emitterHTTPRouteContext.HTTPRoute)
+						neverRule := emitterHTTPRouteContext.Spec.Rules[ruleIdx].DeepCopy()
+						neverRule.Name = ptr.To(gwapiv1.SectionName(fmt.Sprintf("%s-canary-header-never", *neverRule.Name)))
+						for i := range neverRule.Matches {
+							neverRule.Matches[i].Headers = append(neverRule.Matches[i].Headers, gwapiv1.HTTPHeaderMatch{
+								Type:  ptr.To(gwapiv1.HeaderMatchExact),
+								Name:  gwapiv1.HTTPHeaderName(canaryConfig.header),
+								Value: "never",
+							})
+						}
+						neverRule.BackendRefs = []gwapiv1.HTTPBackendRef{*nonCanaryBackend}
+
+						// Insert alwaysRule and neverRule at the beginning of rules
+						emitterHTTPRouteContext.Spec.Rules = append(
+							[]gwapiv1.HTTPRouteRule{*alwaysRule, *neverRule},
+							emitterHTTPRouteContext.Spec.Rules...,
+						)
+					}
+
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed canary annotations of ingress %s/%s and set header match",
+						canarySourceIngress.Namespace, canarySourceIngress.Name), &emitterHTTPRouteContext.HTTPRoute)
+				}
+
+				if canaryConfig.isWeight {
+					canaryWeight := canaryConfig.weight
+					canaryBackend.Weight = &canaryWeight
+					nonCanaryWeight := canaryConfig.weightTotal - canaryWeight
+					nonCanaryBackend.Weight = &nonCanaryWeight
+
+					notify(notifications.InfoNotification, fmt.Sprintf("parsed canary annotations of ingress %s/%s and set weights (canary: %d, non-canary: %d, total: %d)",
+						canarySourceIngress.Namespace, canarySourceIngress.Name, canaryWeight, nonCanaryWeight, canaryConfig.weightTotal), &emitterHTTPRouteContext.HTTPRoute)
+				}
 			}
 		}
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
