@@ -26,10 +26,10 @@ func (e *Emitter) EmitTimeout(ir emitterir.EmitterIR, gwResources *i2gw.GatewayR
 				sectionName = ctx.Spec.Rules[idx].Name
 			}
 			backendTrafficPolicy := e.getOrBuildBackendTrafficPolicy(ctx, sectionName, idx)
-			if backendTrafficPolicy.Spec.ClusterSettings.Timeout == nil {
-				backendTrafficPolicy.Spec.ClusterSettings.Timeout = &egapiv1a1.Timeout{}
+			if backendTrafficPolicy.Spec.Timeout == nil {
+				backendTrafficPolicy.Spec.Timeout = &egapiv1a1.Timeout{}
 			}
-			backendTrafficPolicy.Spec.ClusterSettings.Timeout.TCP = &egapiv1a1.TCPTimeout{
+			backendTrafficPolicy.Spec.Timeout.TCP = &egapiv1a1.TCPTimeout{
 				ConnectTimeout: timeOutIR.Duration,
 			}
 
