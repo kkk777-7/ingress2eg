@@ -1,0 +1,77 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: example.com
+    name: example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: timeout-ingress-1-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: slow-api-service
+      port: 80
+    matches:
+    - path:
+        type: PathPrefix
+        value: /slow-api
+    name: rule-prefix-slow-api
+  - backendRefs:
+    - name: very-slow-api-service
+      port: 80
+    matches:
+    - path:
+        type: PathPrefix
+        value: /very-slow-api
+    name: rule-prefix-very-slow-api
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: timeout-ingress-1-example-com-0
+  namespace: namespace1
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: timeout-ingress-1-example-com
+    sectionName: rule-prefix-slow-api
+  timeout:
+    tcp:
+      connectTimeout: 10s
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: timeout-ingress-1-example-com-1
+  namespace: namespace1
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: timeout-ingress-1-example-com
+    sectionName: rule-prefix-very-slow-api
+  timeout:
+    tcp:
+      connectTimeout: 30s
+status:
+  ancestors: null
