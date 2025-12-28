@@ -29,38 +29,18 @@ spec:
     matches:
     - path:
         type: PathPrefix
-        value: /
-    name: rule-prefix-root
+        value: /api
+    name: rule-prefix-api
   - backendRefs:
     - name: service-ingress1
       port: 443
     matches:
     - path:
         type: PathPrefix
-        value: /api
-    name: rule-prefix-api
+        value: /
+    name: rule-prefix-root
 status:
   parents: []
----
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: SecurityPolicy
-metadata:
-  name: auth-ingress-example-com-1
-  namespace: namespace1
-spec:
-  basicAuth:
-    users:
-      group: ""
-      kind: Secret
-      name: basic-auth-secret-2
-      namespace: namespace1
-  targetRefs:
-  - group: gateway.networking.k8s.io
-    kind: HTTPRoute
-    name: auth-ingress-example-com
-    sectionName: rule-prefix-api
-status:
-  ancestors: null
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
@@ -79,5 +59,25 @@ spec:
     kind: HTTPRoute
     name: auth-ingress-example-com
     sectionName: rule-prefix-root
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: auth-ingress-example-com-1
+  namespace: namespace1
+spec:
+  basicAuth:
+    users:
+      group: ""
+      kind: Secret
+      name: basic-auth-secret-2
+      namespace: namespace1
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: auth-ingress-example-com
+    sectionName: rule-prefix-api
 status:
   ancestors: null

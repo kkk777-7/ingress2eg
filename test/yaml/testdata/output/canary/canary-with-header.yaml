@@ -26,6 +26,16 @@ spec:
   - backendRefs:
     - name: canary-service
       port: 80
+    - name: production-service
+      port: 80
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    name: rule-prefix-api
+  - backendRefs:
+    - name: canary-service
+      port: 80
     matches:
     - headers:
       - name: X-Canary
@@ -47,15 +57,5 @@ spec:
         type: PathPrefix
         value: /api
     name: rule-prefix-api-canary-header-never
-  - backendRefs:
-    - name: canary-service
-      port: 80
-    - name: production-service
-      port: 80
-    matches:
-    - path:
-        type: PathPrefix
-        value: /api
-    name: rule-prefix-api
 status:
   parents: []

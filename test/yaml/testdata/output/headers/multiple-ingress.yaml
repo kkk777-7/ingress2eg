@@ -30,20 +30,6 @@ spec:
     - requestHeaderModifier:
         add:
         - name: X-Forwarded-Prefix
-          value: /v1
-      type: RequestHeaderModifier
-    matches:
-    - path:
-        type: PathPrefix
-        value: /api
-    name: rule-prefix-api
-  - backendRefs:
-    - name: service-ingress1
-      port: 80
-    filters:
-    - requestHeaderModifier:
-        add:
-        - name: X-Forwarded-Prefix
           value: /v2
       type: RequestHeaderModifier
     matches:
@@ -51,5 +37,19 @@ spec:
         type: PathPrefix
         value: /admin
     name: rule-prefix-admin
+  - backendRefs:
+    - name: service-ingress1
+      port: 80
+    filters:
+    - requestHeaderModifier:
+        add:
+        - name: X-Forwarded-Prefix
+          value: /v1
+      type: RequestHeaderModifier
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    name: rule-prefix-api
 status:
   parents: []

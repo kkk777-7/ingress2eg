@@ -338,7 +338,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 
 	var buf bytes.Buffer
 
-	for _, gw := range resources.Gateways {
+	// Sort and encode Gateways
+	gwKeys := make([]types.NamespacedName, 0, len(resources.Gateways))
+	for k := range resources.Gateways {
+		gwKeys = append(gwKeys, k)
+	}
+	sort.Slice(gwKeys, func(i, j int) bool {
+		if gwKeys[i].Namespace != gwKeys[j].Namespace {
+			return gwKeys[i].Namespace < gwKeys[j].Namespace
+		}
+		return gwKeys[i].Name < gwKeys[j].Name
+	})
+	for _, key := range gwKeys {
+		gw := resources.Gateways[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -347,7 +359,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, httpRoute := range resources.HTTPRoutes {
+	// Sort and encode HTTPRoutes
+	httpKeys := make([]types.NamespacedName, 0, len(resources.HTTPRoutes))
+	for k := range resources.HTTPRoutes {
+		httpKeys = append(httpKeys, k)
+	}
+	sort.Slice(httpKeys, func(i, j int) bool {
+		if httpKeys[i].Namespace != httpKeys[j].Namespace {
+			return httpKeys[i].Namespace < httpKeys[j].Namespace
+		}
+		return httpKeys[i].Name < httpKeys[j].Name
+	})
+	for _, key := range httpKeys {
+		httpRoute := resources.HTTPRoutes[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -356,7 +380,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, grpcRoute := range resources.GRPCRoutes {
+	// Sort and encode GRPCRoutes
+	grpcKeys := make([]types.NamespacedName, 0, len(resources.GRPCRoutes))
+	for k := range resources.GRPCRoutes {
+		grpcKeys = append(grpcKeys, k)
+	}
+	sort.Slice(grpcKeys, func(i, j int) bool {
+		if grpcKeys[i].Namespace != grpcKeys[j].Namespace {
+			return grpcKeys[i].Namespace < grpcKeys[j].Namespace
+		}
+		return grpcKeys[i].Name < grpcKeys[j].Name
+	})
+	for _, key := range grpcKeys {
+		grpcRoute := resources.GRPCRoutes[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -365,7 +401,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, tlsRoute := range resources.TLSRoutes {
+	// Sort and encode TLSRoutes
+	tlsKeys := make([]types.NamespacedName, 0, len(resources.TLSRoutes))
+	for k := range resources.TLSRoutes {
+		tlsKeys = append(tlsKeys, k)
+	}
+	sort.Slice(tlsKeys, func(i, j int) bool {
+		if tlsKeys[i].Namespace != tlsKeys[j].Namespace {
+			return tlsKeys[i].Namespace < tlsKeys[j].Namespace
+		}
+		return tlsKeys[i].Name < tlsKeys[j].Name
+	})
+	for _, key := range tlsKeys {
+		tlsRoute := resources.TLSRoutes[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -374,7 +422,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, tcpRoute := range resources.TCPRoutes {
+	// Sort and encode TCPRoutes
+	tcpKeys := make([]types.NamespacedName, 0, len(resources.TCPRoutes))
+	for k := range resources.TCPRoutes {
+		tcpKeys = append(tcpKeys, k)
+	}
+	sort.Slice(tcpKeys, func(i, j int) bool {
+		if tcpKeys[i].Namespace != tcpKeys[j].Namespace {
+			return tcpKeys[i].Namespace < tcpKeys[j].Namespace
+		}
+		return tcpKeys[i].Name < tcpKeys[j].Name
+	})
+	for _, key := range tcpKeys {
+		tcpRoute := resources.TCPRoutes[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -383,7 +443,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, udpRoute := range resources.UDPRoutes {
+	// Sort and encode UDPRoutes
+	udpKeys := make([]types.NamespacedName, 0, len(resources.UDPRoutes))
+	for k := range resources.UDPRoutes {
+		udpKeys = append(udpKeys, k)
+	}
+	sort.Slice(udpKeys, func(i, j int) bool {
+		if udpKeys[i].Namespace != udpKeys[j].Namespace {
+			return udpKeys[i].Namespace < udpKeys[j].Namespace
+		}
+		return udpKeys[i].Name < udpKeys[j].Name
+	})
+	for _, key := range udpKeys {
+		udpRoute := resources.UDPRoutes[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -392,7 +464,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, backendTLSPolicy := range resources.BackendTLSPolicies {
+	// Sort and encode BackendTLSPolicies
+	btpKeys := make([]types.NamespacedName, 0, len(resources.BackendTLSPolicies))
+	for k := range resources.BackendTLSPolicies {
+		btpKeys = append(btpKeys, k)
+	}
+	sort.Slice(btpKeys, func(i, j int) bool {
+		if btpKeys[i].Namespace != btpKeys[j].Namespace {
+			return btpKeys[i].Namespace < btpKeys[j].Namespace
+		}
+		return btpKeys[i].Name < btpKeys[j].Name
+	})
+	for _, key := range btpKeys {
+		backendTLSPolicy := resources.BackendTLSPolicies[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -401,7 +485,19 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, refGrant := range resources.ReferenceGrants {
+	// Sort and encode ReferenceGrants
+	rgKeys := make([]types.NamespacedName, 0, len(resources.ReferenceGrants))
+	for k := range resources.ReferenceGrants {
+		rgKeys = append(rgKeys, k)
+	}
+	sort.Slice(rgKeys, func(i, j int) bool {
+		if rgKeys[i].Namespace != rgKeys[j].Namespace {
+			return rgKeys[i].Namespace < rgKeys[j].Namespace
+		}
+		return rgKeys[i].Name < rgKeys[j].Name
+	})
+	for _, key := range rgKeys {
+		refGrant := resources.ReferenceGrants[key]
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}
@@ -410,7 +506,9 @@ func writeGatewayResourcesToFile(t *testing.T, filename string, resources *i2gw.
 		}
 	}
 
-	for _, ext := range resources.GatewayExtensions {
+	// Sort and encode GatewayExtensions
+	sortedExtensions := sortUnstructuredSlice(resources.GatewayExtensions)
+	for _, ext := range sortedExtensions {
 		if buf.Len() > 0 {
 			buf.WriteString("---\n")
 		}

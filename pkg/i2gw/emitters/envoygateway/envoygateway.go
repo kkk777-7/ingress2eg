@@ -1,7 +1,10 @@
 package envoygateway_emitter
 
 import (
+	"sort"
+
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -34,6 +37,8 @@ func (e *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.Err
 		return i2gw.GatewayResources{}, errs
 	}
 	e.ToEnvoyGatewayResources(ir, &gatewayResources)
+
+	sortGatewayResources(&gatewayResources)
 
 	return gatewayResources, nil
 }
@@ -83,4 +88,59 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 		}
 		gwResources.GatewayExtensions = append(gwResources.GatewayExtensions, *obj)
 	}
+}
+
+// sortGatewayResources sorts gateway listeners, HTTPRoute rules, and backendRefs to ensure stable output.
+func sortGatewayResources(gwResources *i2gw.GatewayResources) {
+	// Sort gateway listeners
+	for key := range gwResources.Gateways {
+		gateway := gwResources.Gateways[key]
+		sort.Slice(gateway.Spec.Listeners, func(i, j int) bool {
+			return gateway.Spec.Listeners[i].Name < gateway.Spec.Listeners[j].Name
+		})
+		gwResources.Gateways[key] = gateway
+	}
+
+	// Sort HTTPRoute rules and backendRefs
+	for key := range gwResources.HTTPRoutes {
+		httpRoute := gwResources.HTTPRoutes[key]
+		// Sort rules by name
+		sort.Slice(httpRoute.Spec.Rules, func(i, j int) bool {
+			if httpRoute.Spec.Rules[i].Name == nil && httpRoute.Spec.Rules[j].Name == nil {
+				return false
+			}
+			if httpRoute.Spec.Rules[i].Name == nil {
+				return true
+			}
+			if httpRoute.Spec.Rules[j].Name == nil {
+				return false
+			}
+			return *httpRoute.Spec.Rules[i].Name < *httpRoute.Spec.Rules[j].Name
+		})
+		// Sort backendRefs within each rule
+		for i := range httpRoute.Spec.Rules {
+			sortBackendRefs(httpRoute.Spec.Rules[i].BackendRefs)
+		}
+		gwResources.HTTPRoutes[key] = httpRoute
+	}
+}
+
+// sortBackendRefs sorts backendRefs by namespace and name to ensure stable output.
+func sortBackendRefs(backendRefs []gwapiv1.HTTPBackendRef) {
+	sort.Slice(backendRefs, func(i, j int) bool {
+		// Sort by namespace
+		iNamespace := ""
+		if backendRefs[i].Namespace != nil {
+			iNamespace = string(*backendRefs[i].Namespace)
+		}
+		jNamespace := ""
+		if backendRefs[j].Namespace != nil {
+			jNamespace = string(*backendRefs[j].Namespace)
+		}
+		if iNamespace != jNamespace {
+			return iNamespace < jNamespace
+		}
+		// Then by name
+		return string(backendRefs[i].Name) < string(backendRefs[j].Name)
+	})
 }
