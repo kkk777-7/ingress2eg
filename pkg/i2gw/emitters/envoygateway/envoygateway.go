@@ -2,6 +2,7 @@ package envoygateway_emitter
 
 import (
 	"sort"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -104,7 +105,7 @@ func sortGatewayResources(gwResources *i2gw.GatewayResources) {
 	// Sort HTTPRoute rules and backendRefs
 	for key := range gwResources.HTTPRoutes {
 		httpRoute := gwResources.HTTPRoutes[key]
-		// Sort rules by name
+		// Sort rules by name, prioritizing canary-header rules
 		sort.Slice(httpRoute.Spec.Rules, func(i, j int) bool {
 			if httpRoute.Spec.Rules[i].Name == nil && httpRoute.Spec.Rules[j].Name == nil {
 				return false
@@ -115,7 +116,24 @@ func sortGatewayResources(gwResources *i2gw.GatewayResources) {
 			if httpRoute.Spec.Rules[j].Name == nil {
 				return false
 			}
-			return *httpRoute.Spec.Rules[i].Name < *httpRoute.Spec.Rules[j].Name
+
+			iName := string(*httpRoute.Spec.Rules[i].Name)
+			jName := string(*httpRoute.Spec.Rules[j].Name)
+
+			// Check if rules are canary header rules
+			iIsCanaryHeader := strings.Contains(iName, "-canary-header")
+			jIsCanaryHeader := strings.Contains(jName, "-canary-header")
+
+			// Canary header rules should come before non-canary rules
+			if iIsCanaryHeader && !jIsCanaryHeader {
+				return true
+			}
+			if !iIsCanaryHeader && jIsCanaryHeader {
+				return false
+			}
+
+			// Within the same category, sort alphabetically
+			return iName < jName
 		})
 		// Sort backendRefs within each rule
 		for i := range httpRoute.Spec.Rules {
