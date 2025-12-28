@@ -26,6 +26,30 @@ spec:
   - backendRefs:
     - name: canary-admin-service
       port: 80
+    matches:
+    - headers:
+      - name: X-Canary
+        type: Exact
+        value: always
+      path:
+        type: PathPrefix
+        value: /admin
+    name: rule-prefix-admin-canary-header-always
+  - backendRefs:
+    - name: production-admin-service
+      port: 80
+    matches:
+    - headers:
+      - name: X-Canary
+        type: Exact
+        value: never
+      path:
+        type: PathPrefix
+        value: /admin
+    name: rule-prefix-admin-canary-header-never
+  - backendRefs:
+    - name: canary-admin-service
+      port: 80
       weight: 10
     - name: production-admin-service
       port: 80

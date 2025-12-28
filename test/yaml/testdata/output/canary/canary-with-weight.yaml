@@ -24,12 +24,12 @@ spec:
   - name: nginx
   rules:
   - backendRefs:
-    - name: production-service
-      port: 80
-      weight: 80
     - name: canary-service
       port: 80
       weight: 20
+    - name: production-service
+      port: 80
+      weight: 80
     matches:
     - path:
         type: PathPrefix
