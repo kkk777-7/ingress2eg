@@ -1,0 +1,131 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: production
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: api.reliable.example.com
+    name: api-reliable-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: api.reliable.example.com
+    name: api-reliable-example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: null
+        kind: null
+        name: reliable-api-tls
+  - hostname: upload.example.com
+    name: upload-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: reliable-api-api-reliable-example-com
+  namespace: production
+spec:
+  hostnames:
+  - api.reliable.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: fast-backend-service
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /fast
+    name: rule-prefix-fast
+  - backendRefs:
+    - name: slow-backend-service
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /slow
+    name: rule-prefix-slow
+status:
+  parents: []
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: upload-api-upload-example-com
+  namespace: production
+spec:
+  hostnames:
+  - upload.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: upload-service
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /upload
+    name: rule-prefix-upload
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: reliable-api-api-reliable-example-com
+  namespace: production
+spec:
+  retry:
+    numRetries: 3
+    retryOn:
+      httpStatusCodes:
+      - 502
+      - 503
+      - 504
+      triggers:
+      - connect-failure
+      - refused-stream
+      - reset
+      - reset-before-request
+      - retriable-status-codes
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: reliable-api-api-reliable-example-com
+  timeout:
+    tcp:
+      connectTimeout: 10s
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: upload-api-upload-example-com
+  namespace: production
+spec:
+  retry:
+    numRetries: 2
+    retryOn:
+      triggers:
+      - connect-failure
+      - refused-stream
+      - reset
+      - reset-before-request
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: upload-api-upload-example-com
+  timeout:
+    tcp:
+      connectTimeout: 30s
+status:
+  ancestors: null

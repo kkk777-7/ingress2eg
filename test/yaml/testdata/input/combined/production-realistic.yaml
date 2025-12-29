@@ -1,0 +1,138 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: production-api
+  namespace: production
+  annotations:
+    # Authentication
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: api-auth-secret
+
+    # CORS
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://app.example.com,https://admin.example.com"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Request-ID, X-Correlation-ID"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "15"
+
+    # Retry
+    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_502 http_503"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "2"
+
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+
+    # Session affinity
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "api-session"
+    nginx.ingress.kubernetes.io/session-cookie-max-age: "3600"
+    nginx.ingress.kubernetes.io/session-cookie-samesite: "Strict"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.example.com
+    secretName: api-tls-cert
+  rules:
+  - host: api.example.com
+    http:
+      paths:
+      - path: /v1
+        pathType: Prefix
+        backend:
+          service:
+            name: api-backend-v1
+            port:
+              number: 8443
+      - path: /v2
+        pathType: Prefix
+        backend:
+          service:
+            name: api-backend-v2
+            port:
+              number: 8443
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: canary-deployment
+  namespace: production
+  annotations:
+    # Canary annotations
+    nginx.ingress.kubernetes.io/canary: "true"
+    nginx.ingress.kubernetes.io/canary-weight: "20"
+    nginx.ingress.kubernetes.io/canary-by-header: "X-Canary"
+    nginx.ingress.kubernetes.io/canary-by-header-value: "always"
+
+    # Same settings as main ingress for consistency
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "api-session"
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - api.example.com
+    secretName: api-tls-cert
+  rules:
+  - host: api.example.com
+    http:
+      paths:
+      - path: /v2
+        pathType: Prefix
+        backend:
+          service:
+            name: api-backend-v2-canary
+            port:
+              number: 8443
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-backend-v1
+  namespace: production
+spec:
+  type: ClusterIP
+  ports:
+  - name: https
+    port: 8443
+    targetPort: 8443
+  selector:
+    app: api
+    version: v1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-backend-v2
+  namespace: production
+spec:
+  type: ClusterIP
+  ports:
+  - name: https
+    port: 8443
+    targetPort: 8443
+  selector:
+    app: api
+    version: v2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-backend-v2-canary
+  namespace: production
+spec:
+  type: ClusterIP
+  ports:
+  - name: https
+    port: 8443
+    targetPort: 8443
+  selector:
+    app: api
+    version: v2-canary

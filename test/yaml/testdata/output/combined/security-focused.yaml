@@ -1,0 +1,118 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: production
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: api.example.com
+    name: api-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: api.example.com
+    name: api-example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: null
+        kind: null
+        name: api-tls-secret
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: security-api-api-example-com
+  namespace: production
+spec:
+  hostnames:
+  - api.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: api-service
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api/v1
+    name: rule-prefix-api-v1
+  - backendRefs:
+    - name: api-service-v2
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /api/v2
+    name: rule-prefix-api-v2
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: security-api-api-example-com
+  namespace: production
+spec:
+  rateLimit:
+    local:
+      rules:
+      - clientSelectors:
+        - sourceCIDR:
+            type: Distinct
+            value: 0.0.0.0/0
+        limit:
+          requests: 5000
+          unit: Minute
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: security-api-api-example-com
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: security-api-api-example-com
+  namespace: production
+spec:
+  authorization:
+    defaultAction: Deny
+    rules:
+    - action: Allow
+      principal:
+        clientCIDRs:
+        - 10.0.0.0/8
+        - 192.168.1.0/24
+        - 203.0.113.0/24
+  basicAuth:
+    users:
+      group: ""
+      kind: Secret
+      name: api-auth-secret
+      namespace: production
+  cors:
+    allowCredentials: true
+    allowHeaders:
+    - Authorization
+    - Content-Type
+    - X-Request-ID
+    allowMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+    allowOrigins:
+    - https://frontend.example.com
+    maxAge: 3600s
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: security-api-api-example-com
+status:
+  ancestors: null
