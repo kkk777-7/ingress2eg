@@ -58,6 +58,7 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 	e.EmitBackendTLS(ir, gwResources)
 	e.EmitTimeout(ir, gwResources)
 	e.EmitRetry(ir, gwResources)
+	e.EmitAffinity(ir, gwResources)
 
 	for _, backend := range e.builderMap.Backends {
 		obj, err := i2gw.CastToUnstructured(backend)
