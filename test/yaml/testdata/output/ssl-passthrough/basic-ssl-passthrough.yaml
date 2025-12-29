@@ -1,0 +1,46 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: secure.example.com
+    name: secure-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: secure.example.com
+    name: secure-example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: null
+        kind: null
+        name: tls-secret
+  - hostname: secure.example.com
+    name: secure-example-com-tls
+    port: 443
+    protocol: TLS
+    tls:
+      mode: Passthrough
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: TLSRoute
+metadata:
+  name: ssl-passthrough-ingress-secure-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - secure.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: secure-service
+      port: 443
+    name: rule-prefix-root
+status:
+  parents: null

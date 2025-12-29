@@ -1,0 +1,179 @@
+package ingressnginx
+
+import (
+	"fmt"
+
+	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
+	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+
+	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
+	providerir "github.com/kkk777-7/ingress2eg/pkg/i2gw/provider_intermediate"
+	"github.com/kkk777-7/ingress2eg/pkg/i2gw/providers/common"
+)
+
+const (
+	sslPassThroughAnnotation = "nginx.ingress.kubernetes.io/ssl-passthrough" // #nosec G101
+)
+
+func sslPassthroughFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
+	ruleGroups := common.GetRuleGroups(ingresses)
+	var errList field.ErrorList
+
+	for _, rg := range ruleGroups {
+		key := types.NamespacedName{Namespace: rg.Namespace, Name: common.RouteName(rg.Name, rg.Host)}
+
+		// Get RuleBackendSources from Provider IR
+		providerHTTPRouteContext, ok := pir.HTTPRoutes[key]
+		if !ok {
+			continue
+		}
+
+		emitterHTTPRouteContext, ok := eir.HTTPRoutes[key]
+		if !ok {
+			continue
+		}
+
+		var hasSslPassthrough bool
+		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
+			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
+				errList = append(errList, field.InternalError(
+					field.NewPath("httproute", emitterHTTPRouteContext.HTTPRoute.Name, "spec", "rules").Index(ruleIdx),
+					fmt.Errorf("rule index %d exceeds available rules", ruleIdx),
+				))
+				continue
+			}
+
+			for _, source := range backendSources {
+				if source.Ingress == nil {
+					continue
+				}
+				ingress := *source.Ingress
+
+				if val := ingress.Annotations[sslPassThroughAnnotation]; val == "true" {
+					hasSslPassthrough = true
+					break
+				}
+			}
+		}
+
+		if hasSslPassthrough {
+			tlsRouteContext := convertHTTPRulesToTLSRoute(emitterHTTPRouteContext)
+			tlsKey := types.NamespacedName{
+				Namespace: key.Namespace,
+				Name:      key.Name,
+			}
+			eir.TLSRoutes[tlsKey] = tlsRouteContext
+
+			gwNN := types.NamespacedName{
+				Name:      string(emitterHTTPRouteContext.Spec.ParentRefs[0].Name),
+				Namespace: ptr.Deref((*string)(emitterHTTPRouteContext.Spec.ParentRefs[0].Namespace), emitterHTTPRouteContext.Namespace),
+			}
+			var hostname *gwapiv1.Hostname
+			if len(emitterHTTPRouteContext.Spec.Hostnames) > 0 {
+				hostname = &emitterHTTPRouteContext.Spec.Hostnames[0]
+			}
+			addTLSListenersIfNeeded(eir, gwNN, hostname)
+
+			notify(notifications.InfoNotification, "created TLSRoute from HTTPRoute with SSL Passthrough enabled",
+				&tlsRouteContext.TLSRoute)
+
+			// Remove the original HTTPRoute
+			delete(eir.HTTPRoutes, key)
+		}
+	}
+
+	if len(errList) > 0 {
+		return errList
+	}
+	return nil
+}
+
+func convertHTTPRulesToTLSRoute(httpRouteCtx emitterir.HTTPRouteContext) emitterir.TLSRouteContext {
+	tlsRoute := gwapiv1a2.TLSRoute{
+		ObjectMeta: httpRouteCtx.ObjectMeta,
+		Spec: gwapiv1a2.TLSRouteSpec{
+			CommonRouteSpec: httpRouteCtx.Spec.CommonRouteSpec,
+			Hostnames:       httpRouteCtx.Spec.Hostnames,
+			Rules:           make([]gwapiv1a2.TLSRouteRule, len(httpRouteCtx.Spec.Rules)),
+		},
+	}
+
+	for i, httpRule := range httpRouteCtx.Spec.Rules {
+		tlsRule := gwapiv1a2.TLSRouteRule{
+			BackendRefs: convertHTTPBackendRefToTLSBackendRef(httpRule.BackendRefs),
+		}
+		if httpRule.Name != nil {
+			tlsRule.Name = httpRule.Name
+		}
+
+		tlsRoute.Spec.Rules[i] = tlsRule
+	}
+	tlsRoute.SetGroupVersionKind(common.TLSRouteGVK)
+
+	return emitterir.TLSRouteContext{
+		TLSRoute: tlsRoute,
+	}
+}
+
+func convertHTTPBackendRefToTLSBackendRef(httpBackendRefs []gwapiv1.HTTPBackendRef) []gwapiv1a2.BackendRef {
+	tlsBackendRefs := make([]gwapiv1a2.BackendRef, len(httpBackendRefs))
+
+	for i, httpRef := range httpBackendRefs {
+		tlsBackendRefs[i] = gwapiv1a2.BackendRef{
+			BackendObjectReference: httpRef.BackendObjectReference,
+		}
+	}
+
+	return tlsBackendRefs
+}
+
+func addTLSListenersIfNeeded(eir *emitterir.EmitterIR, gwNN types.NamespacedName, hostname *gwapiv1.Hostname) {
+	gw, ok := eir.Gateways[gwNN]
+	if !ok {
+		// should not happen
+		return
+	}
+
+	var foundListener bool
+	for _, listener := range gw.Spec.Listeners {
+		if listener.Protocol != gwapiv1.TLSProtocolType {
+			continue
+		}
+		if (hostname == nil) != (listener.Hostname == nil) {
+			continue
+		}
+		if hostname != nil && *hostname != *listener.Hostname {
+			continue
+		}
+		foundListener = true
+		break
+	}
+
+	if foundListener {
+		return
+	}
+
+	listenerName := "tls"
+	if hostname != nil {
+		listenerName = fmt.Sprintf("%s-tls", common.NameFromHost(string(*hostname)))
+	}
+	// Add a TLS listener
+	newListener := gwapiv1.Listener{
+		Name:     gwapiv1.SectionName(listenerName),
+		Protocol: gwapiv1.TLSProtocolType,
+		Port:     gwapiv1.PortNumber(443),
+		TLS: &gwapiv1.ListenerTLSConfig{
+			Mode: ptr.To(gwapiv1.TLSModePassthrough),
+		},
+	}
+	if hostname != nil {
+		newListener.Hostname = hostname
+	}
+	gw.Spec.Listeners = append(gw.Spec.Listeners, newListener)
+	eir.Gateways[gwNN] = gw
+}
