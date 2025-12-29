@@ -27,6 +27,6 @@ spec:
     - path:
         type: PathPrefix
         value: /path-ingress1
-    name: rule-prefix-path-ingress1
+    name: rule-0-prefix-path-ingress1
 status:
   parents: []

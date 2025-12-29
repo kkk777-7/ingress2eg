@@ -39,7 +39,7 @@ spec:
     - path:
         type: PathPrefix
         value: /api/v1
-    name: rule-prefix-api-v1
+    name: rule-0-prefix-api-v1
   - backendRefs:
     - name: api-service-v2
       port: 8080
@@ -47,7 +47,7 @@ spec:
     - path:
         type: PathPrefix
         value: /api/v2
-    name: rule-prefix-api-v2
+    name: rule-1-prefix-api-v2
 status:
   parents: []
 ---

@@ -30,7 +30,7 @@ spec:
     - path:
         type: PathPrefix
         value: /http
-    name: rule-prefix-http
+    name: rule-0-prefix-http
   - backendRefs:
     - name: multi-port-service
       port: 8443
@@ -38,6 +38,6 @@ spec:
     - path:
         type: PathPrefix
         value: /https
-    name: rule-prefix-https
+    name: rule-1-prefix-https
 status:
   parents: []

@@ -46,15 +46,7 @@ spec:
       path:
         type: PathPrefix
         value: /v2
-    name: rule-prefix-v2-canary-header
-  - backendRefs:
-    - name: api-backend-v1
-      port: 8443
-    matches:
-    - path:
-        type: PathPrefix
-        value: /v1
-    name: rule-prefix-v1
+    name: rule-0-prefix-v2-canary-header
   - backendRefs:
     - name: api-backend-v2
       port: 8443
@@ -66,7 +58,15 @@ spec:
     - path:
         type: PathPrefix
         value: /v2
-    name: rule-prefix-v2
+    name: rule-0-prefix-v2
+  - backendRefs:
+    - name: api-backend-v1
+      port: 8443
+    matches:
+    - path:
+        type: PathPrefix
+        value: /v1
+    name: rule-1-prefix-v1
 status:
   parents: []
 ---
@@ -111,7 +111,7 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: canary-deployment-api-example-com
-    sectionName: rule-prefix-v2-canary-header
+    sectionName: rule-0-prefix-v2-canary-header
   timeout:
     tcp:
       connectTimeout: 15s
@@ -159,7 +159,7 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: canary-deployment-api-example-com
-    sectionName: rule-prefix-v2
+    sectionName: rule-0-prefix-v2
   timeout:
     tcp:
       connectTimeout: 15s
@@ -199,7 +199,7 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: canary-deployment-api-example-com
-    sectionName: rule-prefix-v2-canary-header
+    sectionName: rule-0-prefix-v2-canary-header
 status:
   ancestors: null
 ---
@@ -236,6 +236,6 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: canary-deployment-api-example-com
-    sectionName: rule-prefix-v2
+    sectionName: rule-0-prefix-v2
 status:
   ancestors: null

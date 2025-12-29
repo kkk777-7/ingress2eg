@@ -29,16 +29,16 @@ spec:
     matches:
     - path:
         type: PathPrefix
-        value: /admin
-    name: rule-prefix-admin
+        value: /api
+    name: rule-0-prefix-api
   - backendRefs:
     - name: service-ingress1
       port: 80
     matches:
     - path:
         type: PathPrefix
-        value: /api
-    name: rule-prefix-api
+        value: /admin
+    name: rule-1-prefix-admin
 status:
   parents: []
 ---
@@ -58,7 +58,7 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: cors-ingress1-example-com
-    sectionName: rule-prefix-api
+    sectionName: rule-0-prefix-api
 status:
   ancestors: null
 ---
@@ -77,6 +77,6 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: cors-ingress1-example-com
-    sectionName: rule-prefix-admin
+    sectionName: rule-1-prefix-admin
 status:
   ancestors: null

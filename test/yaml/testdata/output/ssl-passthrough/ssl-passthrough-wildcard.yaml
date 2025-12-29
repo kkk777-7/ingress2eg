@@ -41,6 +41,6 @@ spec:
   - backendRefs:
     - name: wildcard-service
       port: 443
-    name: rule-prefix-root
+    name: rule-0-prefix-root
 status:
   parents: null

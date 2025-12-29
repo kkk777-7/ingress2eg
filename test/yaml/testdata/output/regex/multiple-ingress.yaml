@@ -28,16 +28,16 @@ spec:
       port: 443
     matches:
     - path:
-        type: RegularExpression
-        value: /api/v[0-9]+/users
-    name: rule-impl-specific-0
+        type: PathPrefix
+        value: /api/v1/orders
+    name: rule-0-prefix-api-v1-orders
   - backendRefs:
     - name: service-ingress1
       port: 443
     matches:
     - path:
-        type: PathPrefix
-        value: /api/v1/orders
-    name: rule-prefix-api-v1-orders
+        type: RegularExpression
+        value: /api/v[0-9]+/users
+    name: rule-1-impl-specific
 status:
   parents: []

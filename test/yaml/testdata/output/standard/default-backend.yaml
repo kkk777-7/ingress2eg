@@ -46,6 +46,6 @@ spec:
     - path:
         type: PathPrefix
         value: /app
-    name: rule-prefix-app
+    name: rule-0-prefix-app
 status:
   parents: []

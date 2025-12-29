@@ -39,7 +39,7 @@ spec:
     matches:
     - method:
         type: PathPrefix
-    name: rule-prefix-root
+    name: rule-0-prefix-root
 status:
   parents: null
 ---

@@ -111,13 +111,13 @@ func RouteName(ingressName, host string) string {
 
 // RuleNameFromPathMatch generates a valid DNS label name for an HTTPRoute rule
 // based on the path type and path value.
-func RuleNameFromPathMatch(pathType, pathValue string, pathIdx int) string {
+func RuleNameFromPathMatch(pathType, pathValue string, ruleIdx int) string {
 	// Sanitize path type to lowercase
 	sanitizedType := strings.ToLower(pathType)
 
 	// early return to avoid parsing regex paths
 	if sanitizedType == "implementationspecific" {
-		return fmt.Sprintf("rule-impl-specific-%d", pathIdx)
+		return fmt.Sprintf("rule-%d-impl-specific", ruleIdx)
 	}
 
 	// Sanitize path value
@@ -141,7 +141,7 @@ func RuleNameFromPathMatch(pathType, pathValue string, pathIdx int) string {
 		}
 	}
 
-	return fmt.Sprintf("rule-%s-%s", sanitizedType, sanitizedPath)
+	return fmt.Sprintf("rule-%d-%s-%s", ruleIdx, sanitizedType, sanitizedPath)
 }
 
 func ToBackendRef(namespace string, ib networkingv1.IngressBackend, servicePorts map[types.NamespacedName]map[string]int32, path *field.Path) (*gwapiv1.BackendRef, *field.Error) {

@@ -367,7 +367,7 @@ func (rg *ingressRuleGroup) toHTTPRoute(servicePorts map[types.NamespacedName]ma
 	var errors field.ErrorList
 	var allRuleBackendSources [][]providerir.BackendSource
 
-	for _, key := range ingressPathsByMatchKey.keys {
+	for ruleIdx, key := range ingressPathsByMatchKey.keys {
 		paths := ingressPathsByMatchKey.data[key]
 		path := paths[0]
 		fieldPath := field.NewPath("spec", "rules").Index(path.ruleIdx).Child(path.ruleType).Child("paths").Index(path.pathIdx)
@@ -382,7 +382,7 @@ func (rg *ingressRuleGroup) toHTTPRoute(servicePorts map[types.NamespacedName]ma
 		if path.path.PathType != nil {
 			pathType = string(*path.path.PathType)
 		}
-		ruleName := RuleNameFromPathMatch(pathType, path.path.Path, path.pathIdx)
+		ruleName := RuleNameFromPathMatch(pathType, path.path.Path, ruleIdx)
 
 		hrRule := gwapiv1.HTTPRouteRule{
 			Name:    (*gwapiv1.SectionName)(&ruleName),

@@ -29,16 +29,16 @@ spec:
     matches:
     - path:
         type: PathPrefix
-        value: /api
-    name: rule-prefix-api
+        value: /
+    name: rule-0-prefix-root
   - backendRefs:
     - name: service-ingress1
       port: 443
     matches:
     - path:
         type: PathPrefix
-        value: /
-    name: rule-prefix-root
+        value: /api
+    name: rule-1-prefix-api
 status:
   parents: []
 ---

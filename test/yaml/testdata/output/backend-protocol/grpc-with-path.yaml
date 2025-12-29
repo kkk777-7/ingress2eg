@@ -24,20 +24,20 @@ spec:
   - name: nginx
   rules:
   - backendRefs:
-    - name: product-service
-      port: 9090
-    matches:
-    - method:
-        service: grpc.service.v1.ProductService
-        type: PathPrefix
-    name: rule-prefix-grpc-service-v1-productservice
-  - backendRefs:
     - name: user-service
       port: 9090
     matches:
     - method:
         service: grpc.service.v1.UserService
         type: PathPrefix
-    name: rule-prefix-grpc-service-v1-userservice
+    name: rule-0-prefix-grpc-service-v1-userservice
+  - backendRefs:
+    - name: product-service
+      port: 9090
+    matches:
+    - method:
+        service: grpc.service.v1.ProductService
+        type: PathPrefix
+    name: rule-1-prefix-grpc-service-v1-productservice
 status:
   parents: null

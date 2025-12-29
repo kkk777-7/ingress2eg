@@ -37,21 +37,21 @@ spec:
   - name: nginx
   rules:
   - backendRefs:
-    - name: fast-backend-service
-      port: 8080
-    matches:
-    - path:
-        type: PathPrefix
-        value: /fast
-    name: rule-prefix-fast
-  - backendRefs:
     - name: slow-backend-service
       port: 8080
     matches:
     - path:
         type: PathPrefix
         value: /slow
-    name: rule-prefix-slow
+    name: rule-0-prefix-slow
+  - backendRefs:
+    - name: fast-backend-service
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /fast
+    name: rule-1-prefix-fast
 status:
   parents: []
 ---
@@ -73,7 +73,7 @@ spec:
     - path:
         type: PathPrefix
         value: /upload
-    name: rule-prefix-upload
+    name: rule-0-prefix-upload
 status:
   parents: []
 ---

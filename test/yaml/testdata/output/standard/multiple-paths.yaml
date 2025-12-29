@@ -24,21 +24,13 @@ spec:
   - name: nginx
   rules:
   - backendRefs:
-    - name: admin-service
-      port: 9000
-    matches:
-    - path:
-        type: Exact
-        value: /admin
-    name: rule-exact-admin
-  - backendRefs:
     - name: api-service
       port: 8080
     matches:
     - path:
         type: PathPrefix
         value: /api
-    name: rule-prefix-api
+    name: rule-0-prefix-api
   - backendRefs:
     - name: web-service
       port: 3000
@@ -46,6 +38,14 @@ spec:
     - path:
         type: PathPrefix
         value: /web
-    name: rule-prefix-web
+    name: rule-1-prefix-web
+  - backendRefs:
+    - name: admin-service
+      port: 9000
+    matches:
+    - path:
+        type: Exact
+        value: /admin
+    name: rule-2-exact-admin
 status:
   parents: []

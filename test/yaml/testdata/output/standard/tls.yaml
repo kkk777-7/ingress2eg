@@ -39,6 +39,6 @@ spec:
     - path:
         type: PathPrefix
         value: /secure
-    name: rule-prefix-secure
+    name: rule-0-prefix-secure
 status:
   parents: []

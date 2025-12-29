@@ -30,7 +30,7 @@ spec:
     - path:
         type: PathPrefix
         value: /path-ingress1
-    name: rule-prefix-path-ingress1
+    name: rule-1-prefix-path-ingress1
 status:
   parents: []
 ---
@@ -52,6 +52,6 @@ spec:
     - method:
         service: grpc.service.v1.UserService
         type: PathPrefix
-    name: rule-prefix-grpc-service-v1-userservice
+    name: rule-0-prefix-grpc-service-v1-userservice
 status:
   parents: null

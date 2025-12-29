@@ -31,36 +31,6 @@ spec:
     - name: api-service
       port: 8080
     filters:
-    - extensionRef:
-        group: gateway.envoyproxy.io
-        kind: HTTPRouteFilter
-        name: app-redirect-with-code-app-example-com-1
-      type: ExtensionRef
-    matches:
-    - path:
-        type: PathPrefix
-        value: /
-    name: rule-impl-specific-0
-  - backendRefs:
-    - name: user-service
-      port: 8080
-    matches:
-    - path:
-        type: RegularExpression
-        value: /api/v[0-9]+/users
-    name: rule-impl-specific-0
-  - backendRefs:
-    - name: product-service
-      port: 8080
-    matches:
-    - path:
-        type: RegularExpression
-        value: /api/v[0-9]+/products
-    name: rule-impl-specific-1
-  - backendRefs:
-    - name: api-service
-      port: 8080
-    filters:
     - requestRedirect:
         hostname: maintenance.example.com
         scheme: https
@@ -70,7 +40,37 @@ spec:
     - path:
         type: PathPrefix
         value: /maintenance
-    name: rule-prefix-maintenance
+    name: rule-0-prefix-maintenance
+  - backendRefs:
+    - name: api-service
+      port: 8080
+    filters:
+    - extensionRef:
+        group: gateway.envoyproxy.io
+        kind: HTTPRouteFilter
+        name: app-redirect-with-code-app-example-com-1
+      type: ExtensionRef
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-1-impl-specific
+  - backendRefs:
+    - name: user-service
+      port: 8080
+    matches:
+    - path:
+        type: RegularExpression
+        value: /api/v[0-9]+/users
+    name: rule-2-impl-specific
+  - backendRefs:
+    - name: product-service
+      port: 8080
+    matches:
+    - path:
+        type: RegularExpression
+        value: /api/v[0-9]+/products
+    name: rule-3-impl-specific
 status:
   parents: []
 ---
@@ -98,7 +98,7 @@ spec:
     - path:
         type: PathPrefix
         value: /
-    name: rule-prefix-root
+    name: rule-0-prefix-root
 status:
   parents: []
 ---

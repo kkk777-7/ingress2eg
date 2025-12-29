@@ -26,21 +26,21 @@ spec:
   - backendRefs:
     - group: gateway.envoyproxy.io
       kind: Backend
-      name: backend-tls-ingress1-example-com-1-backend-service
-    matches:
-    - path:
-        type: PathPrefix
-        value: /admin
-    name: rule-prefix-admin
-  - backendRefs:
-    - group: gateway.envoyproxy.io
-      kind: Backend
       name: backend-tls-ingress1-example-com-0-backend-service
     matches:
     - path:
         type: PathPrefix
         value: /api
-    name: rule-prefix-api
+    name: rule-0-prefix-api
+  - backendRefs:
+    - group: gateway.envoyproxy.io
+      kind: Backend
+      name: backend-tls-ingress1-example-com-1-backend-service
+    matches:
+    - path:
+        type: PathPrefix
+        value: /admin
+    name: rule-1-prefix-admin
 status:
   parents: []
 ---
