@@ -46,7 +46,7 @@ spec:
         attributes:
           SameSite: Lax
         name: SESSION_ID
-        ttl: "3600"
+        ttl: 3600s
       type: Cookie
     type: ConsistentHash
   targetRefs:

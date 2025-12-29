@@ -54,7 +54,7 @@ func timeOutFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 
 				if val := ingress.Annotations[proxyConnectTimeoutAnnotation]; val != "" {
 					timeoutIR := getOrCreateTimeoutIR(&emitterHTTPRouteContext, ruleIdx)
-					timeoutIR.Duration = ptr.To(gwapiv1.Duration(val))
+					timeoutIR.Duration = ptr.To(gwapiv1.Duration(val) + "s")
 
 					extSource := &emitterir.ExtensionFeatureSource{
 						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},

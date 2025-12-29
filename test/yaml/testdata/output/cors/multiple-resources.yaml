@@ -72,7 +72,7 @@ spec:
     allowCredentials: true
     allowOrigins:
     - https://app2.example.com
-    maxAge: "7200"
+    maxAge: 7200s
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
