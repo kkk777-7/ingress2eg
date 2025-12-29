@@ -27,8 +27,5 @@ func (r *RetryFeatureIR) Equals(other ExtensionFeatureIR) bool {
 	rt2 := slices.Clone(retry.Triggers)
 	slices.Sort(rt1)
 	slices.Sort(rt2)
-	if !slices.Equal(rt1, rt2) {
-		return false
-	}
-	return true
+	return slices.Equal(rt1, rt2)
 }
