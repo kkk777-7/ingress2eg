@@ -4,7 +4,7 @@ metadata:
   name: timeout-ingress-1
   namespace: namespace1
   annotations:
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10s"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
 spec:
   ingressClassName: nginx
   rules:
@@ -25,7 +25,7 @@ metadata:
   name: timeout-ingress-2
   namespace: namespace1
   annotations:
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30s"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
 spec:
   ingressClassName: nginx
   rules:

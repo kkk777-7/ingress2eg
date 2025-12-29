@@ -111,7 +111,7 @@ func corsFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 						annotationMessage = append(annotationMessage, "cors-allow-credentials")
 					}
 					if val := ingress.Annotations[corsMaxAgeAnnotation]; val != "" {
-						corsIR.MaxAge = ptr.To(gwapiv1.Duration(val))
+						corsIR.MaxAge = ptr.To(gwapiv1.Duration(val) + "s")
 						annotationKeys = append(annotationKeys, corsMaxAgeAnnotation)
 						annotationMessage = append(annotationMessage, "cors-max-age")
 					}

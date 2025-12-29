@@ -79,11 +79,11 @@ func affinityFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 					}
 
 					if expire := ingress.Annotations[sessionCookieExpiresAnnotation]; expire != "" {
-						affinityIR.CookieTTLSeconds = ptr.To(gwapiv1.Duration(expire))
+						affinityIR.CookieTTLSeconds = ptr.To(gwapiv1.Duration(expire) + "s")
 						annotationKey = append(annotationKey, sessionCookieExpiresAnnotation)
 						annotationMessage = append(annotationMessage, "session-cookie-expires")
 					} else if maxAge := ingress.Annotations[sessionCookieMaxAgeAnnotation]; maxAge != "" {
-						affinityIR.CookieTTLSeconds = ptr.To(gwapiv1.Duration(maxAge))
+						affinityIR.CookieTTLSeconds = ptr.To(gwapiv1.Duration(maxAge) + "s")
 						annotationKey = append(annotationKey, sessionCookieMaxAgeAnnotation)
 						annotationMessage = append(annotationMessage, "session-cookie-max-age")
 					}
