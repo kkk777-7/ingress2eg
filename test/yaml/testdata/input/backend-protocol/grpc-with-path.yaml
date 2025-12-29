@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grpc-path-ingress
+  namespace: namespace1
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: grpc.example.com
+    http:
+      paths:
+      - path: /grpc.service.v1.UserService
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 9090
+      - path: /grpc.service.v1.ProductService
+        pathType: Prefix
+        backend:
+          service:
+            name: product-service
+            port:
+              number: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: namespace1
+spec:
+  ports:
+  - port: 9090
+    targetPort: 9090
+  selector:
+    app: user-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+  namespace: namespace1
+spec:
+  ports:
+  - port: 9090
+    targetPort: 9090
+  selector:
+    app: product-service

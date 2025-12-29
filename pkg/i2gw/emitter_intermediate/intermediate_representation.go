@@ -138,6 +138,38 @@ type UDPRouteContext struct {
 
 type GRPCRouteContext struct {
 	gwapiv1.GRPCRoute
+
+	// ExtensionFeatures maps extension feature keys to rule-specific features.
+	// The inner map key is the rule index. Use RouteRuleAllIndex (-1) for route-level features.
+	ExtensionFeatures map[ExtensionFeatureKey]map[int]ExtensionFeatureIR
+}
+
+// MergeExtensionFeature merges extension features across all rules into a route-level feature
+// if all rules have identical extension features for the given key.
+// This consolidates redundant rule-level features into a single route-level feature.
+func (g *GRPCRouteContext) MergeExtensionFeature(key ExtensionFeatureKey) {
+	if g.ExtensionFeatures == nil {
+		return
+	}
+	efMap, ok := g.ExtensionFeatures[key]
+	if !ok {
+		return
+	}
+	if len(efMap) != len(g.Spec.Rules) {
+		return
+	}
+
+	var first *ExtensionFeatureIR
+	for _, feature := range efMap {
+		if first == nil {
+			first = &feature
+			continue
+		}
+		if !(*first).Equals(feature) {
+			return
+		}
+	}
+	g.ExtensionFeatures[key] = map[int]ExtensionFeatureIR{RouteRuleAllIndex: *first}
 }
 
 type BackendTLSPolicyContext struct {

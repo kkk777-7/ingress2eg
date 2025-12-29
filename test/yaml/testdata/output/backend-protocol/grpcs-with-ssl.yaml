@@ -1,0 +1,67 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: grpcs.example.com
+    name: grpcs-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: grpcs.example.com
+    name: grpcs-example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: null
+        kind: null
+        name: grpcs-tls-secret
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: grpcs-ingress-grpcs-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - grpcs.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - group: gateway.envoyproxy.io
+      kind: Backend
+      name: grpcs-ingress-grpcs-example-com-grpcs-service
+    matches:
+    - method:
+        type: PathPrefix
+    name: rule-prefix-root
+status:
+  parents: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: grpcs-ingress-grpcs-example-com-grpcs-service
+  namespace: namespace1
+spec:
+  endpoints:
+  - fqdn:
+      hostname: grpcs-service.namespace1.svc.cluster.local
+      port: 9090
+  tls:
+    caCertificateRefs:
+    - group: ""
+      kind: Secret
+      name: grpc-client-cert
+    clientCertificateRef:
+      group: ""
+      kind: Secret
+      name: grpc-client-cert
+    insecureSkipVerify: false
+    sni: grpc.backend.svc.cluster.local
+status: {}

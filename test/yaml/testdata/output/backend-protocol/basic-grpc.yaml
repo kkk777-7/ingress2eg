@@ -1,0 +1,34 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: namespace1
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: grpc.example.com
+    name: grpc-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: grpc-ingress-grpc-example-com
+  namespace: namespace1
+spec:
+  hostnames:
+  - grpc.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: grpc-service
+      port: 9090
+    matches:
+    - method:
+        type: PathPrefix
+    name: rule-prefix-root
+status:
+  parents: null
