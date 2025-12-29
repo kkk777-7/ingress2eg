@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fcgi-ingress
+  namespace: namespace1
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "FCGI"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: fcgi.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: fcgi-service
+            port:
+              number: 8009
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fcgi-service
+  namespace: namespace1
+spec:
+  ports:
+  - port: 8009
+    targetPort: 8009
+  selector:
+    app: tomcat

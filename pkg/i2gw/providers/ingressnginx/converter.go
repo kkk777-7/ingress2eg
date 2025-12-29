@@ -49,6 +49,7 @@ func newResourcesToIRConverter() *resourcesToIRConverter {
 			timeOutFeature,
 			retryFeature,
 			affinityFeature,
+			backendProtocolFeature, // Must be after backendTLSFeature to copy TLS features
 		},
 		implementationSpecificOptions: i2gw.ProviderImplementationSpecificOptions{
 			ToImplementationSpecificHTTPPathTypeMatch: implementationSpecificHTTPPathTypeMatch,

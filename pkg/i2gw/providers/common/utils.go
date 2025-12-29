@@ -131,10 +131,12 @@ func RuleNameFromPathMatch(pathType, pathValue string, pathIdx int) string {
 		// Replace all non-alphanumeric characters with dashes
 		reg := regexp.MustCompile("[^a-zA-Z0-9]+")
 		sanitizedPath = reg.ReplaceAllString(sanitizedPath, "-")
+		// Convert to lowercase for DNS-1123 label compliance
+		sanitizedPath = strings.ToLower(sanitizedPath)
 		// Remove leading/trailing dashes
 		sanitizedPath = strings.Trim(sanitizedPath, "-")
 		// Ensure it starts with alphanumeric
-		if sanitizedPath != "" && !regexp.MustCompile("^[a-zA-Z0-9]").MatchString(sanitizedPath) {
+		if sanitizedPath != "" && !regexp.MustCompile("^[a-z0-9]").MatchString(sanitizedPath) {
 			sanitizedPath = "path-" + sanitizedPath
 		}
 	}

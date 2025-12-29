@@ -54,14 +54,14 @@ func buildRewriteHTTPRouteFilter(
 	return filter
 }
 
-func (e *Emitter) getOrBuildBackend(httpRouteNN types.NamespacedName, ruleIdx int, backendRef gwapiv1.BackendObjectReference) *egapiv1a1.Backend {
-	name := fmt.Sprintf("%s-%d-%s", httpRouteNN.Name, ruleIdx, backendRef.Name)
+func (e *Emitter) getOrBuildBackend(routeNN types.NamespacedName, ruleIdx int, backendRef gwapiv1.BackendObjectReference) *egapiv1a1.Backend {
+	name := fmt.Sprintf("%s-%d-%s", routeNN.Name, ruleIdx, backendRef.Name)
 	if ruleIdx == emitterir.RouteRuleAllIndex {
-		name = fmt.Sprintf("%s-%s", httpRouteNN.Name, backendRef.Name)
+		name = fmt.Sprintf("%s-%s", routeNN.Name, backendRef.Name)
 	}
 	key := types.NamespacedName{
 		Name:      name,
-		Namespace: httpRouteNN.Namespace,
+		Namespace: routeNN.Namespace,
 	}
 	backend, exist := e.builderMap.Backends[key]
 	if exist {
@@ -71,13 +71,13 @@ func (e *Emitter) getOrBuildBackend(httpRouteNN types.NamespacedName, ruleIdx in
 	backend = &egapiv1a1.Backend{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: httpRouteNN.Namespace,
+			Namespace: routeNN.Namespace,
 		},
 		Spec: egapiv1a1.BackendSpec{
 			Endpoints: []egapiv1a1.BackendEndpoint{
 				{
 					FQDN: &egapiv1a1.FQDNEndpoint{
-						Hostname: fmt.Sprintf("%s.%s.svc.cluster.local", backendRef.Name, httpRouteNN.Namespace),
+						Hostname: fmt.Sprintf("%s.%s.svc.cluster.local", backendRef.Name, routeNN.Namespace),
 						Port:     *backendRef.Port,
 					},
 				},

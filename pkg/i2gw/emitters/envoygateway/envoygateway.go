@@ -94,7 +94,7 @@ func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i
 	}
 }
 
-// sortGatewayResources sorts gateway listeners, HTTPRoute rules, and backendRefs to ensure stable output.
+// sortGatewayResources sorts gateway listeners, HTTPRoute rules, GRPCRoute rules, and backendRefs to ensure stable output.
 func sortGatewayResources(gwResources *i2gw.GatewayResources) {
 	// Sort gateway listeners
 	for key := range gwResources.Gateways {
@@ -144,10 +144,53 @@ func sortGatewayResources(gwResources *i2gw.GatewayResources) {
 		}
 		gwResources.HTTPRoutes[key] = httpRoute
 	}
+
+	// Sort GRPCRoute rules and backendRefs
+	for key := range gwResources.GRPCRoutes {
+		grpcRoute := gwResources.GRPCRoutes[key]
+		// Sort rules by name
+		sort.Slice(grpcRoute.Spec.Rules, func(i, j int) bool {
+			if grpcRoute.Spec.Rules[i].Name == nil && grpcRoute.Spec.Rules[j].Name == nil {
+				return false
+			}
+			if grpcRoute.Spec.Rules[i].Name == nil {
+				return true
+			}
+			if grpcRoute.Spec.Rules[j].Name == nil {
+				return false
+			}
+			return string(*grpcRoute.Spec.Rules[i].Name) < string(*grpcRoute.Spec.Rules[j].Name)
+		})
+		// Sort backendRefs within each rule
+		for i := range grpcRoute.Spec.Rules {
+			sortGRPCBackendRefs(grpcRoute.Spec.Rules[i].BackendRefs)
+		}
+		gwResources.GRPCRoutes[key] = grpcRoute
+	}
 }
 
 // sortBackendRefs sorts backendRefs by namespace and name to ensure stable output.
 func sortBackendRefs(backendRefs []gwapiv1.HTTPBackendRef) {
+	sort.Slice(backendRefs, func(i, j int) bool {
+		// Sort by namespace
+		iNamespace := ""
+		if backendRefs[i].Namespace != nil {
+			iNamespace = string(*backendRefs[i].Namespace)
+		}
+		jNamespace := ""
+		if backendRefs[j].Namespace != nil {
+			jNamespace = string(*backendRefs[j].Namespace)
+		}
+		if iNamespace != jNamespace {
+			return iNamespace < jNamespace
+		}
+		// Then by name
+		return string(backendRefs[i].Name) < string(backendRefs[j].Name)
+	})
+}
+
+// sortGRPCBackendRefs sorts GRPC backendRefs by namespace and name to ensure stable output.
+func sortGRPCBackendRefs(backendRefs []gwapiv1.GRPCBackendRef) {
 	sort.Slice(backendRefs, func(i, j int) bool {
 		// Sort by namespace
 		iNamespace := ""

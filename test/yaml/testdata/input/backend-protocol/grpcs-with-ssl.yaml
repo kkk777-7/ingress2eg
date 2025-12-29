@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grpcs-ingress
+  namespace: namespace1
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "GRPCS"
+    nginx.ingress.kubernetes.io/proxy-ssl-secret: "namespace1/grpc-client-cert"
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: "true"
+    nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on"
+    nginx.ingress.kubernetes.io/proxy-ssl-name: "grpc.backend.svc.cluster.local"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: grpcs.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: grpcs-service
+            port:
+              number: 9090
+  tls:
+  - hosts:
+    - grpcs.example.com
+    secretName: grpcs-tls-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grpcs-service
+  namespace: namespace1
+spec:
+  ports:
+  - port: 9090
+    targetPort: 9090
+  selector:
+    app: grpcs-server
