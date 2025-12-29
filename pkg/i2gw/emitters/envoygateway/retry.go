@@ -2,6 +2,7 @@ package envoygateway_emitter
 
 import (
 	"fmt"
+	"sort"
 
 	egapiv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -93,5 +94,14 @@ func (e *Emitter) convertRetryTriggersToEnvoy(triggers []string) ([]egapiv1a1.Tr
 	if len(invalidTriggerSet) > 0 {
 		return nil, nil, fmt.Errorf("unsupported retry trigger: %s", invalidTriggerSet.UnsortedList())
 	}
-	return triggerSet.UnsortedList(), statusSet.UnsortedList(), nil
+
+	triggerList := triggerSet.UnsortedList()
+	statusList := statusSet.UnsortedList()
+	sort.SliceStable(triggerList, func(i, j int) bool {
+		return triggerList[i] < triggerList[j]
+	})
+	sort.SliceStable(statusList, func(i, j int) bool {
+		return statusList[i] < statusList[j]
+	})
+	return triggerList, statusList, nil
 }

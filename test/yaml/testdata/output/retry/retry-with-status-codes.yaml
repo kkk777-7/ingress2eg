@@ -49,9 +49,9 @@ spec:
       - 504
       triggers:
       - connect-failure
-      - reset-before-request
       - refused-stream
       - reset
+      - reset-before-request
       - retriable-status-codes
   targetRefs:
   - group: gateway.networking.k8s.io

@@ -44,9 +44,9 @@ spec:
     retryOn:
       triggers:
       - connect-failure
-      - reset-before-request
       - refused-stream
       - reset
+      - reset-before-request
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
