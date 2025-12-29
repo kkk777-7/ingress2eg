@@ -37,6 +37,6 @@ spec:
     - path:
         type: PathPrefix
         value: /
-    name: rule-prefix-root
+    name: rule-0-prefix-root
 status:
   parents: []

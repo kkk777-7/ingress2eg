@@ -34,7 +34,7 @@ spec:
       path:
         type: PathPrefix
         value: /api
-    name: rule-prefix-api-canary-header-always
+    name: rule-0-prefix-api-canary-header-always
   - backendRefs:
     - name: production-service
       port: 80
@@ -46,7 +46,7 @@ spec:
       path:
         type: PathPrefix
         value: /api
-    name: rule-prefix-api-canary-header-never
+    name: rule-0-prefix-api-canary-header-never
   - backendRefs:
     - name: canary-service
       port: 80
@@ -56,6 +56,6 @@ spec:
     - path:
         type: PathPrefix
         value: /api
-    name: rule-prefix-api
+    name: rule-0-prefix-api
 status:
   parents: []

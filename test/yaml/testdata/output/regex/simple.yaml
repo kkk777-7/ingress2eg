@@ -30,6 +30,6 @@ spec:
     - path:
         type: RegularExpression
         value: /api/v[0-9]+/users
-    name: rule-impl-specific-0
+    name: rule-0-impl-specific
 status:
   parents: []

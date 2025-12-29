@@ -34,6 +34,6 @@ spec:
     - path:
         type: PathPrefix
         value: /api
-    name: rule-prefix-api
+    name: rule-0-prefix-api
 status:
   parents: []

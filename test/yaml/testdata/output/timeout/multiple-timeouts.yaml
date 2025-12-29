@@ -30,7 +30,7 @@ spec:
     - path:
         type: PathPrefix
         value: /slow-api
-    name: rule-prefix-slow-api
+    name: rule-0-prefix-slow-api
   - backendRefs:
     - name: very-slow-api-service
       port: 80
@@ -38,7 +38,7 @@ spec:
     - path:
         type: PathPrefix
         value: /very-slow-api
-    name: rule-prefix-very-slow-api
+    name: rule-1-prefix-very-slow-api
 status:
   parents: []
 ---
@@ -52,7 +52,7 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: timeout-ingress-1-example-com
-    sectionName: rule-prefix-slow-api
+    sectionName: rule-0-prefix-slow-api
   timeout:
     tcp:
       connectTimeout: 10s
@@ -69,7 +69,7 @@ spec:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
     name: timeout-ingress-1-example-com
-    sectionName: rule-prefix-very-slow-api
+    sectionName: rule-1-prefix-very-slow-api
   timeout:
     tcp:
       connectTimeout: 30s
