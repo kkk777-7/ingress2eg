@@ -1,0 +1,241 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: nginx
+  namespace: production
+spec:
+  gatewayClassName: nginx
+  listeners:
+  - hostname: api.example.com
+    name: api-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: api.example.com
+    name: api-example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - group: null
+        kind: null
+        name: api-tls-cert
+      - group: null
+        kind: null
+        name: api-tls-cert
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: canary-deployment-api-example-com
+  namespace: production
+spec:
+  hostnames:
+  - api.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: api-backend-v2-canary
+      port: 8443
+    matches:
+    - headers:
+      - name: X-Canary
+        type: Exact
+        value: always
+      path:
+        type: PathPrefix
+        value: /v2
+    name: rule-prefix-v2-canary-header
+  - backendRefs:
+    - name: api-backend-v1
+      port: 8443
+    matches:
+    - path:
+        type: PathPrefix
+        value: /v1
+    name: rule-prefix-v1
+  - backendRefs:
+    - name: api-backend-v2
+      port: 8443
+      weight: 80
+    - name: api-backend-v2-canary
+      port: 8443
+      weight: 20
+    matches:
+    - path:
+        type: PathPrefix
+        value: /v2
+    name: rule-prefix-v2
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: canary-deployment-api-example-com-0
+  namespace: production
+spec:
+  loadBalancer:
+    consistentHash:
+      cookie:
+        attributes:
+          SameSite: Strict
+        name: api-session
+        ttl: 3600s
+      type: Cookie
+    type: ConsistentHash
+  rateLimit:
+    local:
+      rules:
+      - clientSelectors:
+        - sourceCIDR:
+            type: Distinct
+            value: 0.0.0.0/0
+        limit:
+          requests: 50
+          unit: Second
+  retry:
+    numRetries: 2
+    retryOn:
+      httpStatusCodes:
+      - 502
+      - 503
+      triggers:
+      - connect-failure
+      - refused-stream
+      - reset
+      - reset-before-request
+      - retriable-status-codes
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: canary-deployment-api-example-com
+    sectionName: rule-prefix-v2-canary-header
+  timeout:
+    tcp:
+      connectTimeout: 15s
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  name: canary-deployment-api-example-com-1
+  namespace: production
+spec:
+  loadBalancer:
+    consistentHash:
+      cookie:
+        attributes:
+          SameSite: Strict
+        name: api-session
+        ttl: 3600s
+      type: Cookie
+    type: ConsistentHash
+  rateLimit:
+    local:
+      rules:
+      - clientSelectors:
+        - sourceCIDR:
+            type: Distinct
+            value: 0.0.0.0/0
+        limit:
+          requests: 50
+          unit: Second
+  retry:
+    numRetries: 2
+    retryOn:
+      httpStatusCodes:
+      - 502
+      - 503
+      triggers:
+      - connect-failure
+      - refused-stream
+      - reset
+      - reset-before-request
+      - retriable-status-codes
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: canary-deployment-api-example-com
+    sectionName: rule-prefix-v2
+  timeout:
+    tcp:
+      connectTimeout: 15s
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: canary-deployment-api-example-com-0
+  namespace: production
+spec:
+  basicAuth:
+    users:
+      group: ""
+      kind: Secret
+      name: api-auth-secret
+      namespace: production
+  cors:
+    allowCredentials: true
+    allowHeaders:
+    - Authorization
+    - Content-Type
+    - X-Request-ID
+    - X-Correlation-ID
+    allowMethods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+    allowOrigins:
+    - https://app.example.com
+    - https://admin.example.com
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: canary-deployment-api-example-com
+    sectionName: rule-prefix-v2-canary-header
+status:
+  ancestors: null
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: canary-deployment-api-example-com-1
+  namespace: production
+spec:
+  basicAuth:
+    users:
+      group: ""
+      kind: Secret
+      name: api-auth-secret
+      namespace: production
+  cors:
+    allowCredentials: true
+    allowHeaders:
+    - Authorization
+    - Content-Type
+    - X-Request-ID
+    - X-Correlation-ID
+    allowMethods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+    - OPTIONS
+    allowOrigins:
+    - https://app.example.com
+    - https://admin.example.com
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: canary-deployment-api-example-com
+    sectionName: rule-prefix-v2
+status:
+  ancestors: null
