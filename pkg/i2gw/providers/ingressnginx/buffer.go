@@ -2,9 +2,11 @@ package ingressnginx
 
 import (
 	"fmt"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
@@ -35,6 +37,9 @@ func proxyBufferFeature(ingresses []networkingv1.Ingress, _ map[types.Namespaced
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have buffer configuration and their annotation keys
+		ingressesWithBuffer := make(map[types.NamespacedName]sets.Set[string])
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
@@ -82,14 +87,26 @@ func proxyBufferFeature(ingresses []networkingv1.Ingress, _ map[types.Namespaced
 							AnnotationKey: []string{proxyBodySizeAnnotation},
 						}
 						bufferIR.SetSource(extSource)
-
-						notify(notifications.InfoNotification, fmt.Sprintf("parsed Buffer (proxy-body-size) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-							&emitterHTTPRouteContext.HTTPRoute)
 					}
+
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithBuffer[ingressNN] == nil {
+						ingressesWithBuffer[ingressNN] = sets.New[string]()
+					}
+					ingressesWithBuffer[ingressNN].Insert("proxy-body-size")
 
 					eir.Gateways[gwKey] = emitterGatewayContext
 				}
 			}
+		}
+
+		// Notify once per Ingress if buffer configuration was parsed
+		for ingressNN, annotationSet := range ingressesWithBuffer {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Buffer (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -43,6 +44,9 @@ func corsFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have CORS and their annotation keys
+		ingressesWithCORS := make(map[types.NamespacedName]sets.Set[string])
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
@@ -121,11 +125,25 @@ func corsFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 						AnnotationKey: annotationKeys,
 					}
 					corsIR.SetSource(extSource)
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed CORS %v annotations of ingress %s/%s", annotationMessage, ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithCORS[ingressNN] == nil {
+						ingressesWithCORS[ingressNN] = sets.New[string]()
+					}
+					ingressesWithCORS[ingressNN].Insert(annotationMessage...)
 				}
 			}
 		}
+
+		// Notify once per Ingress if CORS was parsed
+		for ingressNN, annotationSet := range ingressesWithCORS {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed CORS (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

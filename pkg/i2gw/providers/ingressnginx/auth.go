@@ -6,6 +6,7 @@ import (
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -43,6 +44,9 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have which auth types
+		ingressAuthTypes := make(map[types.NamespacedName]sets.Set[string])
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
@@ -83,8 +87,11 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 					}
 					basicAuthIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Auth (auth-type, auth-secret) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressAuthTypes[ingressNN] == nil {
+						ingressAuthTypes[ingressNN] = sets.New[string]()
+					}
+					ingressAuthTypes[ingressNN].Insert("BasicAuth")
 				}
 
 				if val := ingress.Annotations[authTlsSecretAnnotation]; val != "" {
@@ -120,10 +127,13 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 							AnnotationKey: []string{authTlsSecretAnnotation},
 						}
 						mtlsIR.SetSource(extSource)
-
-						notify(notifications.InfoNotification, fmt.Sprintf("parsed Auth (tls-secret) annotation of ingress %s/%s", ingress.Namespace, ingress.Name),
-							&emitterHTTPRouteContext.HTTPRoute)
 					}
+
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressAuthTypes[ingressNN] == nil {
+						ingressAuthTypes[ingressNN] = sets.New[string]()
+					}
+					ingressAuthTypes[ingressNN].Insert("mTLS")
 
 					eir.Gateways[gwKey] = emitterGatewayContext
 				}
@@ -146,11 +156,24 @@ func authFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]ma
 					}
 					externalAuthIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Auth (auth-url, auth-response-headers) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressAuthTypes[ingressNN] == nil {
+						ingressAuthTypes[ingressNN] = sets.New[string]()
+					}
+					ingressAuthTypes[ingressNN].Insert("ExternalAuth")
 				}
 			}
 		}
+
+		// Notify once per Ingress if any auth features were parsed
+		for ingressNN, authTypeSet := range ingressAuthTypes {
+			authTypes := authTypeSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Auth (%s) of ingress %s/%s",
+					strings.Join(authTypes, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

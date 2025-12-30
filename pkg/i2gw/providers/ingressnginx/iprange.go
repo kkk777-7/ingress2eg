@@ -6,6 +6,7 @@ import (
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -37,6 +38,9 @@ func ipRangeFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 			continue
 		}
 
+		// Track which Ingresses have IP range and their annotation keys
+		ingressesWithIPRange := make(map[types.NamespacedName]sets.Set[string])
+
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
 				errList = append(errList, field.InternalError(
@@ -67,8 +71,11 @@ func ipRangeFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 					}
 					ipRangeIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed IPRange (whitelist-source-range) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithIPRange[ingressNN] == nil {
+						ingressesWithIPRange[ingressNN] = sets.New[string]()
+					}
+					ingressesWithIPRange[ingressNN].Insert("whitelist-source-range")
 				}
 
 				if denyList := ingress.Annotations[denyListSourceRangeAnnotation]; denyList != "" {
@@ -86,11 +93,24 @@ func ipRangeFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 					}
 					ipRangeIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed IPRange (denylist-source-range) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithIPRange[ingressNN] == nil {
+						ingressesWithIPRange[ingressNN] = sets.New[string]()
+					}
+					ingressesWithIPRange[ingressNN].Insert("denylist-source-range")
 				}
 			}
 		}
+
+		// Notify once per Ingress if IP range was parsed
+		for ingressNN, annotationSet := range ingressesWithIPRange {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed IPRange (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

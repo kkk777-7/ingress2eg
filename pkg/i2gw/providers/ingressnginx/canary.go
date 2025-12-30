@@ -19,9 +19,11 @@ package ingressnginx
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -112,6 +114,9 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have canary configuration and their annotation keys
+		ingressesWithCanary := make(map[types.NamespacedName]sets.Set[string])
 
 		// Collect new rules to prepend after processing all backend sources
 		var newRulesToPrepend []gwapiv1.HTTPRouteRule
@@ -229,8 +234,11 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 						newRulesToPrepend = append(newRulesToPrepend, *alwaysRule, *neverRule)
 					}
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed canary annotations of ingress %s/%s and set header match",
-						canarySourceIngress.Namespace, canarySourceIngress.Name), &emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: canarySourceIngress.Namespace, Name: canarySourceIngress.Name}
+					if ingressesWithCanary[ingressNN] == nil {
+						ingressesWithCanary[ingressNN] = sets.New[string]()
+					}
+					ingressesWithCanary[ingressNN].Insert("canary-by-header")
 				}
 
 				if canaryConfig.isWeight {
@@ -239,8 +247,11 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 					nonCanaryWeight := canaryConfig.weightTotal - canaryWeight
 					nonCanaryBackend.Weight = &nonCanaryWeight
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed canary annotations of ingress %s/%s and set weights (canary: %d, non-canary: %d, total: %d)",
-						canarySourceIngress.Namespace, canarySourceIngress.Name, canaryWeight, nonCanaryWeight, canaryConfig.weightTotal), &emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: canarySourceIngress.Namespace, Name: canarySourceIngress.Name}
+					if ingressesWithCanary[ingressNN] == nil {
+						ingressesWithCanary[ingressNN] = sets.New[string]()
+					}
+					ingressesWithCanary[ingressNN].Insert("canary-weight")
 				}
 			}
 		}
@@ -248,6 +259,15 @@ func canaryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 		// Prepend all collected header-based canary rules at the beginning
 		if len(newRulesToPrepend) > 0 {
 			emitterHTTPRouteContext.Spec.Rules = append(newRulesToPrepend, emitterHTTPRouteContext.Spec.Rules...)
+		}
+
+		// Notify once per Ingress if canary was parsed
+		for ingressNN, annotationSet := range ingressesWithCanary {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Canary (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
 		}
 
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext

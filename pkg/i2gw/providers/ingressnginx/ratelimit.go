@@ -3,9 +3,11 @@ package ingressnginx
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -37,6 +39,9 @@ func rateLimitFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNa
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have rate limit and their annotation keys
+		ingressesWithRateLimit := make(map[types.NamespacedName]sets.Set[string])
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
@@ -71,8 +76,11 @@ func rateLimitFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNa
 					}
 					rateLimitIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Ratelimit (limit-rpm) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRateLimit[ingressNN] == nil {
+						ingressesWithRateLimit[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRateLimit[ingressNN].Insert("limit-rpm")
 
 					continue
 				}
@@ -95,11 +103,24 @@ func rateLimitFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNa
 					}
 					rateLimitIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Ratelimit (limit-rps) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRateLimit[ingressNN] == nil {
+						ingressesWithRateLimit[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRateLimit[ingressNN].Insert("limit-rps")
 				}
 			}
 		}
+
+		// Notify once per Ingress if rate limit was parsed
+		for ingressNN, annotationSet := range ingressesWithRateLimit {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed RateLimit (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

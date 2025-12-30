@@ -2,9 +2,11 @@ package ingressnginx
 
 import (
 	"fmt"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -42,6 +44,9 @@ func affinityFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have affinity and their annotation keys
+		ingressesWithAffinity := make(map[types.NamespacedName]sets.Set[string])
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
@@ -94,11 +99,24 @@ func affinityFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 					}
 					affinityIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Affinity %v annotations of ingress %s/%s", annotationMessage, ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithAffinity[ingressNN] == nil {
+						ingressesWithAffinity[ingressNN] = sets.New[string]()
+					}
+					ingressesWithAffinity[ingressNN].Insert(annotationMessage...)
 				}
 			}
 		}
+
+		// Notify once per Ingress if affinity was parsed
+		for ingressNN, annotationSet := range ingressesWithAffinity {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Affinity (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 
