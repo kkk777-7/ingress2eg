@@ -39,6 +39,128 @@ This tool supports converting the following NGINX Ingress annotations to Envoy G
 | **SSL Passthrough** | `ssl-passthrough` | `TLSRoute` | TLS passthrough mode without termination |
 | **Timeout** | `proxy-connect-timeout` | `BackendTrafficPolicy` (Timeout.TCP) | Connection timeout configuration |
 
+## 🚀 Quick Start
+
+### Installation
+
+#### Option 1: Install directly with go install
+
+```bash
+go install github.com/kkk777-7/ingress2eg@latest
+```
+
+#### Option 2: Build from source
+
+```bash
+git clone https://github.com/kkk777-7/ingress2eg.git
+cd ingress2eg
+make build
+```
+
+### Basic Usage
+
+#### Convert from Kubernetes Cluster
+
+Convert all Ingress resources in the current namespace:
+
+```bash
+ingress2eg print
+```
+
+Convert from a specific namespace:
+
+```bash
+ingress2eg print --namespace myapp
+```
+
+Convert from all namespaces:
+
+```bash
+ingress2eg print --all-namespaces
+```
+
+#### Convert from File
+
+Convert Ingress resources from a YAML or JSON file:
+
+```bash
+ingress2eg print --input-file ingress.yaml
+```
+
+Save the output to a file:
+
+```bash
+ingress2eg print --input-file ingress.yaml > gateway-resources.yaml
+```
+
+#### Advanced Options
+
+Specify a custom Ingress class (default is `nginx`):
+
+```bash
+ingress2eg print --ingress-nginx-ingress-class=custom-nginx
+```
+
+Change output format:
+
+```bash
+# Output as JSON
+ingress2eg print --output json
+
+# Output as YAML (default)
+ingress2eg print --output yaml
+```
+
+### Example
+
+Given an Ingress resource with NGINX annotations:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-app
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "route"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-service
+            port:
+              number: 80
+```
+
+Run the conversion:
+
+```bash
+ingress2eg print --input-file ingress.yaml
+```
+
+This will generate:
+- `Gateway` resource
+- `HTTPRoute` resource
+- `BackendTrafficPolicy` with session affinity configuration
+- `SecurityPolicy` with CORS configuration
+
+The tool will display informational messages showing which annotations were parsed and converted:
+
+```
+parsed Affinity (affinity, session-cookie-name) of ingress default/example-app
+parsed CORS (enable-cors, cors-allow-origin) of ingress default/example-app
+converted Affinity annotations of ingress default/example-app for rule rule-0
+converted CORS annotations of ingress default/example-app for rule rule-0
+```
 
 ## 📚 References
 
