@@ -45,8 +45,12 @@ func (e *Emitter) EmitAffinity(ir emitterir.EmitterIR, gwResources *i2gw.Gateway
 			}
 
 			affinityIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted Affinity annotations of ingress %s/%s",
-				affinityIR.GetSource().IngressNN.Namespace, affinityIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted Affinity annotations of ingress %s/%s%s",
+				affinityIR.GetSource().IngressNN.Namespace, affinityIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}

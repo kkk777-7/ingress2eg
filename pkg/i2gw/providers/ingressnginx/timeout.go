@@ -2,9 +2,11 @@ package ingressnginx
 
 import (
 	"fmt"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -37,6 +39,9 @@ func timeOutFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 			continue
 		}
 
+		// Track which Ingresses have timeout and their annotation keys
+		ingressesWithTimeout := make(map[types.NamespacedName]sets.Set[string])
+
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
 				errList = append(errList, field.InternalError(
@@ -62,11 +67,24 @@ func timeOutFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 					}
 					timeoutIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Timeout (proxy-connect-timeout) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithTimeout[ingressNN] == nil {
+						ingressesWithTimeout[ingressNN] = sets.New[string]()
+					}
+					ingressesWithTimeout[ingressNN].Insert("proxy-connect-timeout")
 				}
 			}
 		}
+
+		// Notify once per Ingress if timeout was parsed
+		for ingressNN, annotationSet := range ingressesWithTimeout {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Timeout (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

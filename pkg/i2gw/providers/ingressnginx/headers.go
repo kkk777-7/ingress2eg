@@ -2,9 +2,11 @@ package ingressnginx
 
 import (
 	"fmt"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -38,6 +40,9 @@ func headerFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 			continue
 		}
 
+		// Track which Ingresses have header modification and their annotation keys
+		ingressesWithHeaderMod := make(map[types.NamespacedName]sets.Set[string])
+
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
 				errList = append(errList, field.InternalError(
@@ -68,8 +73,11 @@ func headerFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 						},
 					)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Header (x-forwarded-prefix) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithHeaderMod[ingressNN] == nil {
+						ingressesWithHeaderMod[ingressNN] = sets.New[string]()
+					}
+					ingressesWithHeaderMod[ingressNN].Insert("x-forwarded-prefix")
 				}
 
 				if val := ingress.Annotations[upstreamvHostAnnotation]; val != "" {
@@ -82,11 +90,24 @@ func headerFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]
 						},
 					)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Header (upstream-vhost) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithHeaderMod[ingressNN] == nil {
+						ingressesWithHeaderMod[ingressNN] = sets.New[string]()
+					}
+					ingressesWithHeaderMod[ingressNN].Insert("upstream-vhost")
 				}
 			}
 		}
+
+		// Notify once per Ingress if header modification was parsed
+		for ingressNN, annotationSet := range ingressesWithHeaderMod {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Header (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

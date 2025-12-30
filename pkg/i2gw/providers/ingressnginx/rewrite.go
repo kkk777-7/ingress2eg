@@ -2,9 +2,11 @@ package ingressnginx
 
 import (
 	"fmt"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -36,6 +38,9 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 			continue
 		}
 
+		// Track which Ingresses have rewrite and their annotation keys
+		ingressesWithRewrite := make(map[types.NamespacedName]sets.Set[string])
+
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
 				errList = append(errList, field.InternalError(
@@ -61,8 +66,11 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 					}
 					rewriteIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRewrite[ingressNN] == nil {
+						ingressesWithRewrite[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRewrite[ingressNN].Insert("rewrite-target")
 				}
 
 				if val := ingress.Annotations[appRootAnnotation]; val != "" {
@@ -75,11 +83,24 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 					}
 					rewriteIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Rewrite (app-root) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRewrite[ingressNN] == nil {
+						ingressesWithRewrite[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRewrite[ingressNN].Insert("app-root")
 				}
 			}
 		}
+
+		// Notify once per Ingress if rewrite was parsed
+		for ingressNN, annotationSet := range ingressesWithRewrite {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Rewrite (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

@@ -64,8 +64,12 @@ func (e *Emitter) EmitIpRange(ir emitterir.EmitterIR, gwResources *i2gw.GatewayR
 			}
 
 			ipRangeIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted IPRange annotations of ingress %s/%s",
-				ipRangeIR.GetSource().IngressNN.Namespace, ipRangeIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted IPRange annotations of ingress %s/%s%s",
+				ipRangeIR.GetSource().IngressNN.Namespace, ipRangeIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}

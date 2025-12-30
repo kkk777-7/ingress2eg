@@ -35,8 +35,12 @@ func (e *Emitter) EmitBackendTLS(ir emitterir.EmitterIR, gwResources *i2gw.Gatew
 			gwResources.HTTPRoutes[nn] = route
 
 			backendTLSIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted BackendTLS annotations of ingress %s/%s",
-				backendTLSIR.GetSource().IngressNN.Namespace, backendTLSIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if idx != emitterir.RouteRuleAllIndex && idx < len(ctx.Spec.Rules) && ctx.Spec.Rules[idx].Name != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *ctx.Spec.Rules[idx].Name)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted BackendTLS annotations of ingress %s/%s%s",
+				backendTLSIR.GetSource().IngressNN.Namespace, backendTLSIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}
@@ -62,8 +66,12 @@ func (e *Emitter) EmitBackendTLS(ir emitterir.EmitterIR, gwResources *i2gw.Gatew
 			gwResources.GRPCRoutes[nn] = route
 
 			backendTLSIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted BackendTLS annotations of ingress %s/%s",
-				backendTLSIR.GetSource().IngressNN.Namespace, backendTLSIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if idx != emitterir.RouteRuleAllIndex && idx < len(ctx.Spec.Rules) && ctx.Spec.Rules[idx].Name != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *ctx.Spec.Rules[idx].Name)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted BackendTLS annotations of ingress %s/%s%s",
+				backendTLSIR.GetSource().IngressNN.Namespace, backendTLSIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.GRPCRoute)
 		}
 	}

@@ -86,8 +86,12 @@ func (e *Emitter) EmitRewrite(ir emitterir.EmitterIR, gwResources *i2gw.GatewayR
 			gwResources.HTTPRoutes[nn] = route
 
 			rewriteIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted Rewrite annotations of ingress %s/%s",
-				rewriteIR.GetSource().IngressNN.Namespace, rewriteIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if idx != emitterir.RouteRuleAllIndex && idx < len(ctx.Spec.Rules) && ctx.Spec.Rules[idx].Name != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *ctx.Spec.Rules[idx].Name)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted Rewrite annotations of ingress %s/%s%s",
+				rewriteIR.GetSource().IngressNN.Namespace, rewriteIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}

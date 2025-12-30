@@ -34,8 +34,12 @@ func (e *Emitter) EmitTimeout(ir emitterir.EmitterIR, gwResources *i2gw.GatewayR
 			}
 
 			timeOutIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted Timeout annotations of ingress %s/%s",
-				timeOutIR.GetSource().IngressNN.Namespace, timeOutIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted Timeout annotations of ingress %s/%s%s",
+				timeOutIR.GetSource().IngressNN.Namespace, timeOutIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}

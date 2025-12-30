@@ -2,9 +2,11 @@ package ingressnginx
 
 import (
 	"fmt"
+	"strings"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
@@ -38,6 +40,9 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 			continue
 		}
 
+		// Track which Ingresses have redirect and their annotation keys
+		ingressesWithRedirect := make(map[types.NamespacedName]sets.Set[string])
+
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
 				errList = append(errList, field.InternalError(
@@ -65,8 +70,11 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 					}
 					redirectIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Redirect (ssl) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRedirect[ingressNN] == nil {
+						ingressesWithRedirect[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRedirect[ingressNN].Insert("ssl-redirect")
 				}
 
 				if val := ingress.Annotations[forceSslRedirectAnnotation]; val == "true" {
@@ -81,8 +89,11 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 					}
 					redirectIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Redirect (force-ssl) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRedirect[ingressNN] == nil {
+						ingressesWithRedirect[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRedirect[ingressNN].Insert("force-ssl-redirect")
 				}
 
 				if val, ok := ingress.Annotations[permanentRedirectAnnotation]; ok {
@@ -96,8 +107,11 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 					}
 					redirectIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Redirect (permanent) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRedirect[ingressNN] == nil {
+						ingressesWithRedirect[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRedirect[ingressNN].Insert("permanent-redirect")
 				}
 
 				if val, ok := ingress.Annotations[temporalRedirectAnnotation]; ok {
@@ -111,11 +125,24 @@ func redirectFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedNam
 					}
 					redirectIR.SetSource(source)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Redirect (temporal) annotations of ingress %s/%s", ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRedirect[ingressNN] == nil {
+						ingressesWithRedirect[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRedirect[ingressNN].Insert("temporal-redirect")
 				}
 			}
 		}
+
+		// Notify once per Ingress if redirect was parsed
+		for ingressNN, annotationSet := range ingressesWithRedirect {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Redirect (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

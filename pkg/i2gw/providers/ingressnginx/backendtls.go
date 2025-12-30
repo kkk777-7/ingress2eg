@@ -8,6 +8,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -48,6 +49,9 @@ func backendTLSFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedN
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have backend TLS and their annotation keys
+		ingressesWithBackendTLS := make(map[types.NamespacedName]sets.Set[string])
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
@@ -105,11 +109,24 @@ func backendTLSFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedN
 					}
 					backendTLSIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed BackendTLS %v annotations of ingress %s/%s", annotationMessage, ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithBackendTLS[ingressNN] == nil {
+						ingressesWithBackendTLS[ingressNN] = sets.New[string]()
+					}
+					ingressesWithBackendTLS[ingressNN].Insert(annotationMessage...)
 				}
 			}
 		}
+
+		// Notify once per Ingress if backend TLS was parsed
+		for ingressNN, annotationSet := range ingressesWithBackendTLS {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed BackendTLS (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 
@@ -38,6 +39,9 @@ func retryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]m
 		if !ok {
 			continue
 		}
+
+		// Track which Ingresses have retry and their annotation keys
+		ingressesWithRetry := make(map[types.NamespacedName]sets.Set[string])
 
 		for ruleIdx, backendSources := range providerHTTPRouteContext.RuleBackendSources {
 			if ruleIdx >= len(emitterHTTPRouteContext.Spec.Rules) {
@@ -85,11 +89,24 @@ func retryFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]m
 					}
 					retryIR.SetSource(extSource)
 
-					notify(notifications.InfoNotification, fmt.Sprintf("parsed Retry %v annotations of ingress %s/%s", annotationMessage, ingress.Namespace, ingress.Name),
-						&emitterHTTPRouteContext.HTTPRoute)
+					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
+					if ingressesWithRetry[ingressNN] == nil {
+						ingressesWithRetry[ingressNN] = sets.New[string]()
+					}
+					ingressesWithRetry[ingressNN].Insert(annotationMessage...)
 				}
 			}
 		}
+
+		// Notify once per Ingress if retry was parsed
+		for ingressNN, annotationSet := range ingressesWithRetry {
+			annotations := annotationSet.UnsortedList()
+			notify(notifications.InfoNotification,
+				fmt.Sprintf("parsed Retry (%s) of ingress %s/%s",
+					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
+				&emitterHTTPRouteContext.HTTPRoute)
+		}
+
 		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 

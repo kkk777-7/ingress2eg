@@ -63,8 +63,12 @@ func (e *Emitter) EmitRateLimit(ir emitterir.EmitterIR, gwResources *i2gw.Gatewa
 			)
 
 			rateLimitIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted RateLimit annotations of ingress %s/%s",
-				rateLimitIR.GetSource().IngressNN.Namespace, rateLimitIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted RateLimit annotations of ingress %s/%s%s",
+				rateLimitIR.GetSource().IngressNN.Namespace, rateLimitIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}
