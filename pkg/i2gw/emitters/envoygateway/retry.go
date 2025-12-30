@@ -46,8 +46,12 @@ func (e *Emitter) EmitRetry(ir emitterir.EmitterIR, gwResources *i2gw.GatewayRes
 			backendTrafficPolicy.Spec.Retry.NumRetries = retryIR.Count
 
 			retryIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted Retry annotations of ingress %s/%s",
-				retryIR.GetSource().IngressNN.Namespace, retryIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted Retry annotations of ingress %s/%s%s",
+				retryIR.GetSource().IngressNN.Namespace, retryIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}

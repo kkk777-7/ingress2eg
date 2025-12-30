@@ -41,8 +41,12 @@ func (e *Emitter) EmitBasicAuth(ir emitterir.EmitterIR, gwResources *i2gw.Gatewa
 			}
 
 			basicAuthIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted BasicAuth annotations of ingress %s/%s",
-				basicAuthIR.GetSource().IngressNN.Namespace, basicAuthIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted BasicAuth annotations of ingress %s/%s%s",
+				basicAuthIR.GetSource().IngressNN.Namespace, basicAuthIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}
@@ -104,8 +108,12 @@ func (e *Emitter) EmitMTLS(ir emitterir.EmitterIR, gwResources *i2gw.GatewayReso
 			}
 
 			mtlsIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted mTLS annotations of ingress %s/%s",
-				mtlsIR.GetSource().IngressNN.Namespace, mtlsIR.GetSource().IngressNN.Name),
+			listenerInfo := ""
+			if sectionName != nil {
+				listenerInfo = fmt.Sprintf(" for listener %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted mTLS annotations of ingress %s/%s%s",
+				mtlsIR.GetSource().IngressNN.Namespace, mtlsIR.GetSource().IngressNN.Name, listenerInfo),
 				&ctx.Gateway)
 		}
 	}
@@ -150,8 +158,12 @@ func (e *Emitter) EmitExternalAuth(ir emitterir.EmitterIR, gwResources *i2gw.Gat
 			}
 
 			externalAuthIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted ExternalAuth annotations of ingress %s/%s",
-				externalAuthIR.GetSource().IngressNN.Namespace, externalAuthIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted ExternalAuth annotations of ingress %s/%s%s",
+				externalAuthIR.GetSource().IngressNN.Namespace, externalAuthIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}

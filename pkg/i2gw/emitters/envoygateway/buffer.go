@@ -35,8 +35,12 @@ func (e *Emitter) EmitBuffer(ir emitterir.EmitterIR, gwResources *i2gw.GatewayRe
 			clientTrafficPolicy.Spec.Connection.BufferLimit = &quantity
 
 			bufferIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted Buffer annotations of ingress %s/%s",
-				bufferIR.GetSource().IngressNN.Namespace, bufferIR.GetSource().IngressNN.Name),
+			listenerInfo := ""
+			if sectionName != nil {
+				listenerInfo = fmt.Sprintf(" for listener %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted Buffer annotations of ingress %s/%s%s",
+				bufferIR.GetSource().IngressNN.Namespace, bufferIR.GetSource().IngressNN.Name, listenerInfo),
 				&ctx.Gateway)
 		}
 	}

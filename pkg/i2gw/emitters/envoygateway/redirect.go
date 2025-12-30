@@ -45,8 +45,12 @@ func (e *Emitter) EmitRedirect(ir emitterir.EmitterIR, gwResources *i2gw.Gateway
 			gwResources.HTTPRoutes[nn] = route
 
 			redirectIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted Redirect annotations of ingress %s/%s",
-				redirectIR.GetSource().IngressNN.Namespace, redirectIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if idx != emitterir.RouteRuleAllIndex && idx < len(ctx.Spec.Rules) && ctx.Spec.Rules[idx].Name != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *ctx.Spec.Rules[idx].Name)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted Redirect annotations of ingress %s/%s%s",
+				redirectIR.GetSource().IngressNN.Namespace, redirectIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}

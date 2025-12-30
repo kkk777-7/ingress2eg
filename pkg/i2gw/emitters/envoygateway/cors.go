@@ -52,8 +52,12 @@ func (e *Emitter) EmitCors(ir emitterir.EmitterIR, gwResources *i2gw.GatewayReso
 			}
 
 			corsIR.SetParsed()
-			notify(notifications.InfoNotification, fmt.Sprintf("converted CORS annotations of ingress %s/%s",
-				corsIR.GetSource().IngressNN.Namespace, corsIR.GetSource().IngressNN.Name),
+			ruleInfo := ""
+			if sectionName != nil {
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
+			}
+			notify(notifications.InfoNotification, fmt.Sprintf("converted CORS annotations of ingress %s/%s%s",
+				corsIR.GetSource().IngressNN.Namespace, corsIR.GetSource().IngressNN.Name, ruleInfo),
 				&ctx.HTTPRoute)
 		}
 	}
