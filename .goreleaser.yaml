@@ -24,3 +24,10 @@ archives:
       format: zip
 checksum:
   name_template: 'checksums.txt'
+release:
+  draft: true
+  name_template: "v{{.Version}}"
+  header: |
+    ## Installation
+
+    To install this release, refer to the instructions at https://github.com/kkk777-7/ingress2eg/blob/v{{.Version}}/README.md
