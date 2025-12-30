@@ -14,6 +14,32 @@ ingress2eg helps translate Ingress to Gateway API and Envoy Gateway CRD resource
 
 This project primarily focuses on converting NGINX Ingress resources to Envoy Gateway, in response to the [retirement of ingress-nginx](https://kubernetes.io/blog/2025/11/11/ingress-nginx-retirement/). The main goal is to provide a migration path for users transitioning from NGINX Ingress to Envoy Gateway.
 
+## 🚀 Supported Features
+
+This tool supports converting the following NGINX Ingress annotations to Envoy Gateway resources:
+
+| Feature Category | NGINX Ingress Annotations | Envoy Gateway Resources | Description |
+|-----------------|---------------------------|------------------------|-------------|
+| **Session Affinity** | `affinity`, `session-cookie-name`, `session-cookie-max-age`, `session-cookie-expires`, `session-cookie-samesite` | `BackendTrafficPolicy` (LoadBalancer.ConsistentHash) | Cookie-based session affinity for sticky sessions |
+| **Authentication - Basic** | `auth-type`, `auth-secret` | `SecurityPolicy` (BasicAuth) | HTTP Basic Authentication |
+| **Authentication - mTLS** | `auth-tls-secret` | `ClientTrafficPolicy` (TLS.ClientValidation) | Mutual TLS authentication at Gateway listener level |
+| **Authentication - External** | `auth-url`, `auth-response-headers` | `SecurityPolicy` (ExtAuth) | External authentication service integration |
+| **Backend TLS** | `proxy-ssl-secret`, `proxy-ssl-verify`, `proxy-ssl-name`, `proxy-ssl-server-name` | `Backend` (TLS) | TLS configuration for upstream connections |
+| **Backend Protocol** | `backend-protocol` | `HTTPRoute` / `GRPCRoute` | Protocol detection and route type conversion (HTTP/GRPC) |
+| **Buffer Limits** | `proxy-body-size` | `ClientTrafficPolicy` (Connection.BufferLimit) | Client request buffer size limits |
+| **Canary Deployment** | `canary`, `canary-by-header`, `canary-by-header-value`, `canary-weight`, `canary-weight-total` | `HTTPRoute` (HTTPRouteRule with weights/matches) | Header-based and weight-based traffic splitting |
+| **CORS** | `enable-cors`, `cors-allow-origin`, `cors-allow-methods`, `cors-allow-headers`, `cors-expose-headers`, `cors-max-age`, `cors-allow-credentials` | `SecurityPolicy` (CORS) | Cross-Origin Resource Sharing policy |
+| **Header Modification** | `x-forwarded-prefix`, `upstream-vhost` | `HTTPRoute` (RequestHeaderModifier filter) | Request header manipulation |
+| **IP Range Control** | `whitelist-source-range`, `denylist-source-range` | `SecurityPolicy` (Authorization) | IP-based access control with allowlist/denylist |
+| **Rate Limiting** | `limit-rps`, `limit-rpm` | `BackendTrafficPolicy` (RateLimit.Local) | Request rate limiting per client IP |
+| **Redirect** | `ssl-redirect`, `force-ssl-redirect`, `permanent-redirect`, `temporal-redirect` | `HTTPRoute` (RequestRedirect filter) | HTTP to HTTPS and URL redirects |
+| **Regex Path Matching** | `use-regex` | `HTTPRoute` (PathMatchRegularExpression) | Regular expression path matching |
+| **Retry Policy** | `proxy-next-upstream`, `proxy-next-upstream-tries` | `BackendTrafficPolicy` (Retry) | Automatic request retry on failures |
+| **URL Rewrite** | `rewrite-target`, `app-root` | `HTTPRoute` (URLRewrite filter) or `HTTPRouteFilter` (ExtensionRef) | Path rewriting with or without regex |
+| **SSL Passthrough** | `ssl-passthrough` | `TLSRoute` | TLS passthrough mode without termination |
+| **Timeout** | `proxy-connect-timeout` | `BackendTrafficPolicy` (Timeout.TCP) | Connection timeout configuration |
+
+
 ## 📚 References
 
 ### Gateway API
