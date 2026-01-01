@@ -22,3 +22,12 @@ helm install eg oci://docker.io/envoyproxy/gateway-helm \
   --create-namespace \
   -f "${EG_VALUES_FILE}" \
   --skip-crds
+
+kubectl apply -f - <<EOF
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: eg
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+EOF

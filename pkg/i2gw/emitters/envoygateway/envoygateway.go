@@ -37,11 +37,21 @@ func (e *Emitter) Emit(ir emitterir.EmitterIR) (i2gw.GatewayResources, field.Err
 	if len(errs) != 0 {
 		return i2gw.GatewayResources{}, errs
 	}
+	e.UpdateGatewayClass(&gatewayResources)
 	e.ToEnvoyGatewayResources(ir, &gatewayResources)
 
 	sortGatewayResources(&gatewayResources)
 
 	return gatewayResources, nil
+}
+
+func (e *Emitter) UpdateGatewayClass(gwResources *i2gw.GatewayResources) {
+	for idx, gw := range gwResources.Gateways {
+		if gcName := gw.Spec.GatewayClassName; gcName != "eg" {
+			gw.Spec.GatewayClassName = "eg"
+		}
+		gwResources.Gateways[idx] = gw
+	}
 }
 
 func (e *Emitter) ToEnvoyGatewayResources(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
