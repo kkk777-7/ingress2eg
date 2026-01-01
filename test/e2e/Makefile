@@ -15,3 +15,7 @@ deploy-controllers: ## Deploy nginx ingress controller and Envoy Gateway control
 .PHONY: deploy-e2e-apps
 deploy-e2e-apps:  ## Deploy e2e test applications to the kind cluster
 	kubectl apply -f ./testdata/apps
+
+.PHONY: delete-cluster
+delete-cluster: ## Delete kind cluster.
+	kind delete cluster --name ingress2eg

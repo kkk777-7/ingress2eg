@@ -118,11 +118,22 @@ spec:
 ############################################
 ## Basic Authorization resources
 ############################################
+### For NGINX Ingress
 apiVersion: v1
 kind: Secret
 metadata:
-  name: basic-auth
+  name: ingress-basic-auth
   namespace: ingress2eg
 type: Opaque
 data:
-  auth: Zm9vOiRhcHIxJGhsVWVva0swJEF6TkFISTc4OHAvU2NSUFl3bU45VzAK
+  auth: Zm9vOntTSEF9WXMyM0FnLzVJT1dxWkN3OVFHYVZEZEh3SDAwPQo=
+---
+### For Envoy Gateway
+apiVersion: v1
+kind: Secret
+metadata:
+  name: eg-basic-auth
+  namespace: ingress2eg
+type: Opaque
+data:
+  .htpasswd: Zm9vOntTSEF9WXMyM0FnLzVJT1dxWkN3OVFHYVZEZEh3SDAwPQo=

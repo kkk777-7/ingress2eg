@@ -5,14 +5,14 @@ metadata:
   namespace: ingress2eg
   annotations:
     nginx.ingress.kubernetes.io/auth-type: basic
-    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-secret: ingress-basic-auth
 spec:
   ingressClassName: nginx
   rules:
   - host: foo.bar.com
     http:
       paths:
-      - path: /
+      - path: /basic
         pathType: Prefix
         backend:
           service: 
