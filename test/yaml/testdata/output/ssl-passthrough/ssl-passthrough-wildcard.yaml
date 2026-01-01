@@ -4,7 +4,7 @@ metadata:
   name: nginx
   namespace: namespace1
 spec:
-  gatewayClassName: nginx
+  gatewayClassName: eg
   listeners:
   - hostname: '*.example.com'
     name: example-com-http

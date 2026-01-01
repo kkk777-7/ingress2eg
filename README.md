@@ -21,7 +21,7 @@ This tool supports converting the following NGINX Ingress annotations to Envoy G
 | Feature Category | NGINX Ingress Annotations | Envoy Gateway Resources | Description |
 |-----------------|---------------------------|------------------------|-------------|
 | **Session Affinity** | [`affinity`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#session-affinity), [`session-cookie-name`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#cookie-affinity), [`session-cookie-max-age`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#cookie-affinity), [`session-cookie-expires`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#cookie-affinity), [`session-cookie-samesite`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#cookie-affinity) | `BackendTrafficPolicy` ([LoadBalancer.ConsistentHash](https://gateway.envoyproxy.io/docs/api/extension_types/#consistenthash)) | Cookie-based session affinity for sticky sessions |
-| **Authentication - Basic** | [`auth-type`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#authentication), [`auth-secret`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#authentication)<br>※only support `basic` auth-type | `SecurityPolicy` ([BasicAuth](https://gateway.envoyproxy.io/docs/api/extension_types/#basicauth)) | HTTP Basic Authentication |
+| **Authentication - Basic** | [`auth-type`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#authentication), [`auth-secret`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#authentication)<br>[\*1](#note-1) | `SecurityPolicy` ([BasicAuth](https://gateway.envoyproxy.io/docs/api/extension_types/#basicauth)) | HTTP Basic Authentication |
 | **Authentication - mTLS** | [`auth-tls-secret`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#client-certificate-authentication) | `ClientTrafficPolicy` ([ClientTLSSettings](https://gateway.envoyproxy.io/docs/api/extension_types/#clienttlssettings)) | Mutual TLS authentication at Gateway listener level |
 | **Authentication - External** | [`auth-url`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#external-authentication), [`auth-response-headers`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#external-authentication) | `SecurityPolicy` ([ExtAuth](https://gateway.envoyproxy.io/docs/api/extension_types/#extauth)) | External authentication service integration |
 | **Backend TLS** | [`proxy-ssl-secret`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#backend-certificate-authentication), [`proxy-ssl-verify`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#backend-certificate-authentication), [`proxy-ssl-name`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#backend-certificate-authentication), [`proxy-ssl-server-name`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#backend-certificate-authentication) | `Backend` ([BackendTLSSettings](https://gateway.envoyproxy.io/docs/api/extension_types/#backendtlssettings)) | TLS configuration for upstream connections |
@@ -38,6 +38,22 @@ This tool supports converting the following NGINX Ingress annotations to Envoy G
 | **URL Rewrite** | [`rewrite-target`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#rewrite), [`app-root`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#rewrite) | `HTTPRoute` ([URLRewrite](https://gateway-api.sigs.k8s.io/reference/1.4/spec/#httproutefilter) filter) or [`HTTPRouteFilter`](https://gateway.envoyproxy.io/docs/api/extension_types/#httpurlrewritefilter) (ExtensionRef) | Path rewriting with or without regex |
 | **SSL Passthrough** | [`ssl-passthrough`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#ssl-passthrough) | `TLSRoute` | TLS passthrough mode without termination |
 | **Timeout** | [`proxy-connect-timeout`](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#custom-timeouts) | `BackendTrafficPolicy` ([Timeout.TCP](https://gateway.envoyproxy.io/docs/api/extension_types/#tcptimeout)) | Connection timeout configuration |
+
+### Notes
+
+<a id="note-1">**\*1 Basic Authentication Requirements:**</a>
+- Only `basic` auth-type is supported. Other authentication types (e.g., digest) are not converted.
+- For Envoy Gateway, the Secret must contain a key named `.htpasswd` in htpasswd format.
+- Example Secret format:
+  ```yaml
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: basic-auth-secret
+  type: Opaque
+  data:
+    .htpasswd: <base64-encoded-htpasswd-content>
+  ```
 
 ## 🚀 Quick Start
 

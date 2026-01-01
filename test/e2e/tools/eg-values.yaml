@@ -1,0 +1,9 @@
+config:
+  envoyGateway:
+    extensionApis:
+      enableBackend: true
+    provider:
+      type: Kubernetes
+      kubernetes:
+        deploy:
+          type: GatewayNamespace
