@@ -4,7 +4,7 @@ metadata:
   name: nginx
   namespace: namespace1
 spec:
-  gatewayClassName: nginx
+  gatewayClassName: eg
   listeners:
   - hostname: fcgi.example.com
     name: fcgi-example-com-http

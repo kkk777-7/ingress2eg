@@ -4,7 +4,7 @@ metadata:
   name: nginx
   namespace: production
 spec:
-  gatewayClassName: nginx
+  gatewayClassName: eg
   listeners:
   - hostname: api.example.com
     name: api-example-com-http
