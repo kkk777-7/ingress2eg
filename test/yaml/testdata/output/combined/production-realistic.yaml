@@ -96,7 +96,7 @@ spec:
           requests: 50
           unit: Second
   retry:
-    numRetries: 2
+    numRetries: 1
     retryOn:
       httpStatusCodes:
       - 502
@@ -144,7 +144,7 @@ spec:
           requests: 50
           unit: Second
   retry:
-    numRetries: 2
+    numRetries: 1
     retryOn:
       httpStatusCodes:
       - 502

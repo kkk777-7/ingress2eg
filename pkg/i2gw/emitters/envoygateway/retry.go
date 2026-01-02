@@ -6,6 +6,7 @@ import (
 
 	egapiv1a1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/utils/ptr"
 	gwapiv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw"
@@ -43,7 +44,9 @@ func (e *Emitter) EmitRetry(ir emitterir.EmitterIR, gwResources *i2gw.GatewayRes
 				Triggers:        triggers,
 				HTTPStatusCodes: statusCodes,
 			}
-			backendTrafficPolicy.Spec.Retry.NumRetries = retryIR.Count
+			if retryIR.Count != nil {
+				backendTrafficPolicy.Spec.Retry.NumRetries = ptr.To(*retryIR.Count - 1)
+			}
 
 			retryIR.SetParsed()
 			ruleInfo := ""

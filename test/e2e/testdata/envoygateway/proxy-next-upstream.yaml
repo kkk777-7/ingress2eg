@@ -47,7 +47,7 @@ metadata:
   namespace: ingress2eg
 spec:
   retry:
-    numRetries: 3
+    numRetries: 2
     retryOn:
       httpStatusCodes:
       - 500
