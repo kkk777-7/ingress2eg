@@ -1,0 +1,145 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: ingress2eg
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nginx-tls-ca
+  namespace: ingress2eg
+spec:
+  isCA: true
+  commonName: nginx-tls-ca
+  secretName: nginx-tls-ca-secret
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: nginx-tls-ca-issuer
+  namespace: ingress2eg
+spec:
+  ca:
+    secretName: nginx-tls-ca-secret
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nginx-tls-server-cert
+  namespace: ingress2eg
+spec:
+  secretName: nginx-tls-server-secret
+  duration: 2160h # 90 days
+  renewBefore: 360h # 15 days
+  commonName: nginx-tls.ingress2eg.svc.cluster.local
+  dnsNames:
+    - nginx-tls
+    - nginx-tls.ingress2eg
+    - nginx-tls.ingress2eg.svc
+    - nginx-tls.ingress2eg.svc.cluster.local
+    - passthrough.example.com
+  issuerRef:
+    name: nginx-tls-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-tls-config
+  namespace: ingress2eg
+data:
+  nginx.conf: |
+    events {
+        worker_connections 1024;
+    }
+    http {
+        server {
+            listen 8443 ssl;
+            server_name nginx-tls.ingress2eg.svc.cluster.local passthrough.example.com;
+            
+            ssl_certificate /etc/nginx/ssl/tls.crt;
+            ssl_certificate_key /etc/nginx/ssl/tls.key;
+            
+            location / {
+                default_type application/json;
+                return 200 '{"status":"ok","server":"nginx-tls","tls":"enabled","hostname":"$hostname","uri":"$uri","ssl_client_verify":"$ssl_client_verify"}';
+            }
+            
+            location /health {
+                return 200 'healthy';
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-tls
+  namespace: ingress2eg
+  labels:
+    app: nginx-tls
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-tls
+  template:
+    metadata:
+      labels:
+        app: nginx-tls
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 8443
+          name: https
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+        - name: tls-certs
+          mountPath: /etc/nginx/ssl
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-tls-config
+      - name: tls-certs
+        secret:
+          secretName: nginx-tls-server-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-tls
+  namespace: ingress2eg
+  labels:
+    app: nginx-tls
+spec:
+  selector:
+    app: nginx-tls
+  ports:
+  - port: 8443
+    targetPort: 8443
+    name: https
+    appProtocol: https

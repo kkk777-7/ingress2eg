@@ -1,0 +1,46 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: nginx
+  namespace: ingress2eg
+spec:
+  gatewayClassName: eg
+  listeners:
+  - hostname: passthrough.example.com
+    name: passthrough-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: passthrough.example.com
+    name: passthrough-example-com-tls
+    port: 443
+    protocol: TLS
+    tls:
+      mode: Passthrough
+    allowedRoutes:
+      namespaces:
+        from: All
+      kinds:
+      - kind: TLSRoute
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1alpha3
+kind: TLSRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: ssl-passthrough-passthrough-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - passthrough.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: nginx-tls
+      port: 8443
+    name: rule-0-prefix-root
+status:
+  parents: null

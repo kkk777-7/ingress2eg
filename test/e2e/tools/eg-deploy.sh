@@ -12,7 +12,7 @@ EG_VALUES_FILE="${SCRIPT_DIR}/eg-values.yaml"
 helm template eg oci://docker.io/envoyproxy/gateway-crds-helm \
   --version "${EG_VERSION}" \
   --set crds.gatewayAPI.enabled=true \
-  --set crds.gatewayAPI.channel=standard \
+  --set crds.gatewayAPI.channel=experimental \
   --set crds.envoyGateway.enabled=true \
   | kubectl apply --server-side -f -
 
