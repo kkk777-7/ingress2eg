@@ -1,0 +1,67 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: nginx
+  namespace: ingress2eg
+spec:
+  gatewayClassName: eg
+  listeners:
+  - hostname: retry.example.com
+    name: retry-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: proxy-next-upstream-retry-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - retry.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: error-backend
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: proxy-next-upstream-retry-example-com
+  namespace: ingress2eg
+spec:
+  retry:
+    numRetries: 3
+    retryOn:
+      httpStatusCodes:
+      - 500
+      - 502
+      - 503
+      triggers:
+      - connect-failure
+      - refused-stream
+      - reset
+      - reset-before-request
+      - retriable-status-codes
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: proxy-next-upstream-retry-example-com
+status:
+  ancestors: null
