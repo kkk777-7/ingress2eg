@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proxy-timeout
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "2"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: timeout.example.com
+    http:
+      paths:
+      - path: /timeout
+        pathType: Prefix
+        backend:
+          service:
+            name: slow-backend
+            port:
+              number: 8080
+      - path: /normal
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
