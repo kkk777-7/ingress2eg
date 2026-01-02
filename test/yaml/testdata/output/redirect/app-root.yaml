@@ -26,16 +26,24 @@ spec:
   - backendRefs:
     - name: service-ingress1
       port: 443
-    filters:
-    - type: URLRewrite
-      urlRewrite:
-        path:
-          replaceFullPath: /app
-          type: ReplaceFullPath
     matches:
     - path:
         type: PathPrefix
         value: /
     name: rule-0-prefix-root
+  - filters:
+    - requestRedirect:
+        hostname: example.com
+        path:
+          replaceFullPath: /app
+          type: ReplaceFullPath
+        scheme: http
+        statusCode: 302
+      type: RequestRedirect
+    matches:
+    - path:
+        type: Exact
+        value: /
+    name: rule-for-app-root-redirect
 status:
   parents: []
