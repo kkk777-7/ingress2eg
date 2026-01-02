@@ -11,6 +11,7 @@ create-cluster: ## Create a kind cluster for converter e2e tests.
 deploy-controllers: ## Deploy nginx ingress controller and Envoy Gateway controller to the kind cluster.
 	./tools/nginx-deploy.sh
 	./tools/eg-deploy.sh
+	./tools/cert-manager-deploy.sh
 
 .PHONY: deploy-e2e-apps
 deploy-e2e-apps:  ## Deploy e2e test applications to the kind cluster

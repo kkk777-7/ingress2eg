@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: external-auth
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/auth-url: http://ext-authz.ingress2eg.svc.cluster.local:9002/
+    nginx.ingress.kubernetes.io/auth-response-headers: x-current-user
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: foo.bar.com
+    http:
+      paths:
+      - path: /external
+        pathType: Prefix
+        backend:
+          service: 
+            name: echo-server
+            port: 
+              number: 8080

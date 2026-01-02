@@ -134,3 +134,33 @@ spec:
   selector:
     app: echo-server
     version: canary
+---
+############################################
+## Timeout resources
+############################################
+apiVersion: v1
+kind: Service
+metadata:
+  name: slow-backend
+  namespace: ingress2eg
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    name: http
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: slow-backend-1
+  namespace: ingress2eg
+  labels:
+    kubernetes.io/service-name: slow-backend
+addressType: IPv4
+endpoints:
+- addresses:
+  - "192.0.2.1"  # TEST-NET-1: unreachable IP for timeout testing
+ports:
+- name: http
+  port: 8080
+  protocol: TCP
