@@ -1,0 +1,60 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: nginx
+  namespace: ingress2eg
+spec:
+  gatewayClassName: eg
+  listeners:
+  - hostname: rewrite.example.com
+    name: rewrite-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: rewrite-target-rewrite-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - rewrite.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: echo-server
+      port: 8080
+    filters:
+    - extensionRef:
+        group: gateway.envoyproxy.io
+        kind: HTTPRouteFilter
+        name: rewrite-target-rewrite-example-com-0
+      type: ExtensionRef
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-impl-specific
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: HTTPRouteFilter
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: rewrite-target-rewrite-example-com-0
+  namespace: ingress2eg
+spec:
+  urlRewrite:
+    path:
+      replaceRegexMatch:
+        pattern: ^/test(/|$)(.*)$
+        substitution: /rewritten\1\2
+      type: ReplaceRegexMatch
