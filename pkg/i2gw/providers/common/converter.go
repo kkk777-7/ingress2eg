@@ -106,7 +106,7 @@ var (
 
 	TLSRouteGVK = schema.GroupVersionKind{
 		Group:   "gateway.networking.k8s.io",
-		Version: "v1alpha2",
+		Version: "v1alpha3",
 		Kind:    "TLSRoute",
 	}
 
