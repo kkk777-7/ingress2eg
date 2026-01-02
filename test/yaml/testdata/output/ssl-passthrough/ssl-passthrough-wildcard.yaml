@@ -10,16 +10,13 @@ spec:
     name: example-com-http
     port: 80
     protocol: HTTP
-  - hostname: '*.example.com'
-    name: example-com-https
-    port: 443
-    protocol: HTTPS
-    tls:
-      certificateRefs:
-      - group: null
-        kind: null
-        name: wildcard-tls-secret
-  - hostname: '*.example.com'
+  - allowedRoutes:
+      kinds:
+      - group: gateway.networking.k8s.io
+        kind: TLSRoute
+      namespaces:
+        from: Same
+    hostname: '*.example.com'
     name: example-com-tls
     port: 443
     protocol: TLS
@@ -27,7 +24,7 @@ spec:
       mode: Passthrough
 status: {}
 ---
-apiVersion: gateway.networking.k8s.io/v1alpha2
+apiVersion: gateway.networking.k8s.io/v1alpha3
 kind: TLSRoute
 metadata:
   name: ssl-passthrough-wildcard-ingress-example-com
@@ -37,6 +34,7 @@ spec:
   - '*.example.com'
   parentRefs:
   - name: nginx
+    sectionName: example-com-tls
   rules:
   - backendRefs:
     - name: wildcard-service

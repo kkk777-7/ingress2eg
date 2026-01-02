@@ -62,13 +62,6 @@ func sslPassthroughFeature(ingresses []networkingv1.Ingress, _ map[types.Namespa
 		}
 
 		if hasSslPassthrough {
-			tlsRouteContext := convertHTTPRulesToTLSRoute(emitterHTTPRouteContext)
-			tlsKey := types.NamespacedName{
-				Namespace: key.Namespace,
-				Name:      key.Name,
-			}
-			eir.TLSRoutes[tlsKey] = tlsRouteContext
-
 			gwNN := types.NamespacedName{
 				Name:      string(emitterHTTPRouteContext.Spec.ParentRefs[0].Name),
 				Namespace: ptr.Deref((*string)(emitterHTTPRouteContext.Spec.ParentRefs[0].Namespace), emitterHTTPRouteContext.Namespace),
@@ -77,7 +70,15 @@ func sslPassthroughFeature(ingresses []networkingv1.Ingress, _ map[types.Namespa
 			if len(emitterHTTPRouteContext.Spec.Hostnames) > 0 {
 				hostname = &emitterHTTPRouteContext.Spec.Hostnames[0]
 			}
-			addTLSListenersIfNeeded(eir, gwNN, hostname)
+			listenerName := ensureTLSListenerForPassthrough(eir, gwNN, hostname)
+
+			tlsRouteContext := convertHTTPRulesToTLSRoute(emitterHTTPRouteContext, listenerName)
+
+			tlsKey := types.NamespacedName{
+				Namespace: key.Namespace,
+				Name:      key.Name,
+			}
+			eir.TLSRoutes[tlsKey] = tlsRouteContext
 
 			notify(notifications.InfoNotification, "created TLSRoute from HTTPRoute with SSL Passthrough enabled",
 				&tlsRouteContext.TLSRoute)
@@ -93,7 +94,7 @@ func sslPassthroughFeature(ingresses []networkingv1.Ingress, _ map[types.Namespa
 	return nil
 }
 
-func convertHTTPRulesToTLSRoute(httpRouteCtx emitterir.HTTPRouteContext) emitterir.TLSRouteContext {
+func convertHTTPRulesToTLSRoute(httpRouteCtx emitterir.HTTPRouteContext, sectionName gwapiv1.SectionName) emitterir.TLSRouteContext {
 	tlsRoute := gwapiv1a2.TLSRoute{
 		ObjectMeta: httpRouteCtx.ObjectMeta,
 		Spec: gwapiv1a2.TLSRouteSpec{
@@ -101,6 +102,10 @@ func convertHTTPRulesToTLSRoute(httpRouteCtx emitterir.HTTPRouteContext) emitter
 			Hostnames:       httpRouteCtx.Spec.Hostnames,
 			Rules:           make([]gwapiv1a2.TLSRouteRule, len(httpRouteCtx.Spec.Rules)),
 		},
+	}
+	if sectionName != "" {
+		// ParentRefs should have one entry
+		tlsRoute.Spec.ParentRefs[0].SectionName = ptr.To(sectionName)
 	}
 
 	for i, httpRule := range httpRouteCtx.Spec.Rules {
@@ -132,37 +137,40 @@ func convertHTTPBackendRefToTLSBackendRef(httpBackendRefs []gwapiv1.HTTPBackendR
 	return tlsBackendRefs
 }
 
-func addTLSListenersIfNeeded(eir *emitterir.EmitterIR, gwNN types.NamespacedName, hostname *gwapiv1.Hostname) {
+// ensureTLSListenerForPassthrough replaces any existing HTTPS listener with a TLS Passthrough listener
+// for the given hostname, or adds a new one if none exists. Returns the listener name.
+func ensureTLSListenerForPassthrough(eir *emitterir.EmitterIR, gwNN types.NamespacedName, hostname *gwapiv1.Hostname) gwapiv1.SectionName {
 	gw, ok := eir.Gateways[gwNN]
 	if !ok {
 		// should not happen
-		return
-	}
-
-	var foundListener bool
-	for _, listener := range gw.Spec.Listeners {
-		if listener.Protocol != gwapiv1.TLSProtocolType {
-			continue
-		}
-		if (hostname == nil) != (listener.Hostname == nil) {
-			continue
-		}
-		if hostname != nil && *hostname != *listener.Hostname {
-			continue
-		}
-		foundListener = true
-		break
-	}
-
-	if foundListener {
-		return
+		return ""
 	}
 
 	listenerName := "tls"
 	if hostname != nil {
 		listenerName = fmt.Sprintf("%s-tls", common.NameFromHost(string(*hostname)))
 	}
-	// Add a TLS listener
+
+	// Filter out HTTPS listeners with matching hostname and check for existing TLS listener
+	var newListeners []gwapiv1.Listener
+	for _, listener := range gw.Spec.Listeners {
+		hostnameMatches := (hostname == nil) == (listener.Hostname == nil) &&
+			(hostname == nil || *hostname == *listener.Hostname)
+
+		// Skip HTTPS listeners with matching hostname (will be replaced with TLS Passthrough)
+		if listener.Protocol == gwapiv1.HTTPSProtocolType && hostnameMatches {
+			continue
+		}
+
+		// If TLS listener already exists with matching hostname, return its name
+		if listener.Protocol == gwapiv1.TLSProtocolType && hostnameMatches {
+			return listener.Name
+		}
+
+		newListeners = append(newListeners, listener)
+	}
+
+	// Add TLS Passthrough listener
 	newListener := gwapiv1.Listener{
 		Name:     gwapiv1.SectionName(listenerName),
 		Protocol: gwapiv1.TLSProtocolType,
@@ -170,10 +178,25 @@ func addTLSListenersIfNeeded(eir *emitterir.EmitterIR, gwNN types.NamespacedName
 		TLS: &gwapiv1.ListenerTLSConfig{
 			Mode: ptr.To(gwapiv1.TLSModePassthrough),
 		},
+		AllowedRoutes: &gwapiv1.AllowedRoutes{
+			Namespaces: &gwapiv1.RouteNamespaces{
+				From: ptr.To(gwapiv1.NamespacesFromSame),
+			},
+			Kinds: []gwapiv1.RouteGroupKind{
+				{
+					Group: ptr.To(gwapiv1.Group(common.TLSRouteGVK.Group)),
+					Kind:  gwapiv1.Kind(common.TLSRouteGVK.Kind),
+				},
+			},
+		},
 	}
 	if hostname != nil {
 		newListener.Hostname = hostname
 	}
-	gw.Spec.Listeners = append(gw.Spec.Listeners, newListener)
+	newListeners = append(newListeners, newListener)
+
+	gw.Spec.Listeners = newListeners
 	eir.Gateways[gwNN] = gw
+
+	return gwapiv1.SectionName(listenerName)
 }
