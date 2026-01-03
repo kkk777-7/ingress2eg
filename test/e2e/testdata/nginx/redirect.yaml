@@ -1,0 +1,87 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redirect-ssl
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ssl-redirect.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
+  tls:
+  - hosts:
+    - ssl-redirect.example.com
+    secretName: ssl-redirect-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redirect-force-ssl
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: force-ssl-redirect.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redirect-permanent
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: "https://permanent.example.com/new-path"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: permanent-redirect.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redirect-temporal
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/temporal-redirect: "https://temporal.example.com/temp-path"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: temporal-redirect.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
