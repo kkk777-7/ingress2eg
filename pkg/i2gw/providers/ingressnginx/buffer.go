@@ -8,7 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/ptr"
 
 	emitterir "github.com/kkk777-7/ingress2eg/pkg/i2gw/emitter_intermediate"
 	"github.com/kkk777-7/ingress2eg/pkg/i2gw/notifications"
@@ -57,45 +56,20 @@ func proxyBufferFeature(ingresses []networkingv1.Ingress, _ map[types.Namespaced
 				ingress := *source.Ingress
 
 				if val := ingress.Annotations[proxyBodySizeAnnotation]; val != "" {
-					gwKey := types.NamespacedName{
-						Name:      string(emitterHTTPRouteContext.Spec.ParentRefs[0].Name),
-						Namespace: ptr.Deref((*string)(emitterHTTPRouteContext.Spec.ParentRefs[0].Namespace), emitterHTTPRouteContext.Namespace),
-					}
-					emitterGatewayContext, exists := eir.Gateways[gwKey]
-					if !exists {
-						notify(notifications.ErrorNotification, fmt.Sprintf("cannot find Gateway %s referenced by HTTPRoute %s/%s for Buffer configuration",
-							gwKey.String(), emitterHTTPRouteContext.Namespace, emitterHTTPRouteContext.Name),
-							&emitterHTTPRouteContext.HTTPRoute)
-						continue
-					}
+					bufferIR := getOrCreateBufferIR(&emitterHTTPRouteContext, ruleIdx)
+					bufferIR.LimitValue = val
 
-					// Find the listeners that match the hostname from the rule group
-					listenerIndices := findMatchingGatewayListenerIndex(&emitterGatewayContext, rg.Host, nil)
-					if len(listenerIndices) == 0 {
-						notify(notifications.ErrorNotification, fmt.Sprintf("cannot find matching listener for hostname %q in Gateway %s for Buffer configuration",
-							rg.Host, gwKey.String()),
-							&emitterHTTPRouteContext.HTTPRoute)
-						continue
+					extSource := &emitterir.ExtensionFeatureSource{
+						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
+						AnnotationKey: []string{proxyBodySizeAnnotation},
 					}
-
-					for _, listenerIdx := range listenerIndices {
-						bufferIR := getOrCreateGatewayBufferIR(&emitterGatewayContext, listenerIdx)
-						bufferIR.LimitValue = val
-
-						extSource := &emitterir.ExtensionFeatureSource{
-							IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-							AnnotationKey: []string{proxyBodySizeAnnotation},
-						}
-						bufferIR.SetSource(extSource)
-					}
+					bufferIR.SetSource(extSource)
 
 					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
 					if ingressesWithBuffer[ingressNN] == nil {
 						ingressesWithBuffer[ingressNN] = sets.New[string]()
 					}
 					ingressesWithBuffer[ingressNN].Insert("proxy-body-size")
-
-					eir.Gateways[gwKey] = emitterGatewayContext
 				}
 			}
 		}
@@ -108,6 +82,7 @@ func proxyBufferFeature(ingresses []networkingv1.Ingress, _ map[types.Namespaced
 					strings.Join(annotations, ", "), ingressNN.Namespace, ingressNN.Name),
 				&emitterHTTPRouteContext.HTTPRoute)
 		}
+		eir.HTTPRoutes[key] = emitterHTTPRouteContext
 	}
 
 	if len(errList) > 0 {
@@ -116,7 +91,7 @@ func proxyBufferFeature(ingresses []networkingv1.Ingress, _ map[types.Namespaced
 	return nil
 }
 
-func getOrCreateGatewayBufferIR(ctx *emitterir.GatewayContext, listenerIdx int) *emitterir.BufferFeatureIR {
+func getOrCreateBufferIR(ctx *emitterir.HTTPRouteContext, ruleIdx int) *emitterir.BufferFeatureIR {
 	if ctx.ExtensionFeatures == nil {
 		ctx.ExtensionFeatures = make(map[emitterir.ExtensionFeatureKey]map[int]emitterir.ExtensionFeatureIR)
 	}
@@ -126,10 +101,10 @@ func getOrCreateGatewayBufferIR(ctx *emitterir.GatewayContext, listenerIdx int) 
 		ctx.ExtensionFeatures[emitterir.BufferFeatureKey] = efMap
 	}
 
-	ef, exists := efMap[listenerIdx]
+	ef, exists := efMap[ruleIdx]
 	if !exists {
 		ef = &emitterir.BufferFeatureIR{}
-		efMap[listenerIdx] = ef
+		efMap[ruleIdx] = ef
 	}
 	return ef.(*emitterir.BufferFeatureIR)
 }

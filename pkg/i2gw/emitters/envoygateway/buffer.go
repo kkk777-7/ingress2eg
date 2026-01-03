@@ -13,7 +13,7 @@ import (
 )
 
 func (e *Emitter) EmitBuffer(ir emitterir.EmitterIR, gwResources *i2gw.GatewayResources) {
-	for _, ctx := range ir.Gateways {
+	for _, ctx := range ir.HTTPRoutes {
 		ctx.MergeExtensionFeature(emitterir.BufferFeatureKey)
 
 		for idx, ir := range ctx.ExtensionFeatures[emitterir.BufferFeatureKey] {
@@ -23,25 +23,23 @@ func (e *Emitter) EmitBuffer(ir emitterir.EmitterIR, gwResources *i2gw.GatewayRe
 			bufferIR := ir.(*emitterir.BufferFeatureIR)
 
 			var sectionName *gwapiv1.SectionName
-			if idx != emitterir.ListenerAllIndex && idx < len(ctx.Spec.Listeners) {
-				sectionName = &ctx.Spec.Listeners[idx].Name
+			if idx != emitterir.RouteRuleAllIndex && idx < len(ctx.Spec.Rules) {
+				sectionName = ctx.Spec.Rules[idx].Name
 			}
-
-			clientTrafficPolicy := e.getOrBuildClientTrafficPolicy(ctx, sectionName, idx)
-			if clientTrafficPolicy.Spec.Connection == nil {
-				clientTrafficPolicy.Spec.Connection = &egapiv1a1.ClientConnection{}
-			}
+			backendTrafficPolicy := e.getOrBuildBackendTrafficPolicy(ctx, sectionName, idx)
 			quantity := resource.MustParse(bufferIR.LimitValue)
-			clientTrafficPolicy.Spec.Connection.BufferLimit = &quantity
+			backendTrafficPolicy.Spec.RequestBuffer = &egapiv1a1.RequestBuffer{
+				Limit: quantity,
+			}
 
 			bufferIR.SetParsed()
-			listenerInfo := ""
+			ruleInfo := ""
 			if sectionName != nil {
-				listenerInfo = fmt.Sprintf(" for listener %s", *sectionName)
+				ruleInfo = fmt.Sprintf(" for rule %s", *sectionName)
 			}
 			notify(notifications.InfoNotification, fmt.Sprintf("converted Buffer annotations of ingress %s/%s%s",
-				bufferIR.GetSource().IngressNN.Namespace, bufferIR.GetSource().IngressNN.Name, listenerInfo),
-				&ctx.Gateway)
+				bufferIR.GetSource().IngressNN.Namespace, bufferIR.GetSource().IngressNN.Name, ruleInfo),
+				&ctx.HTTPRoute)
 		}
 	}
 }

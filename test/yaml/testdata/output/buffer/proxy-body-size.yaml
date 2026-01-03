@@ -35,16 +35,16 @@ status:
   parents: []
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: ClientTrafficPolicy
+kind: BackendTrafficPolicy
 metadata:
-  name: nginx
+  name: buffer-ingress-example-com
   namespace: namespace1
 spec:
-  connection:
-    bufferLimit: 10m
+  requestBuffer:
+    limit: 10m
   targetRefs:
   - group: gateway.networking.k8s.io
-    kind: Gateway
-    name: nginx
+    kind: HTTPRoute
+    name: buffer-ingress-example-com
 status:
   ancestors: null
