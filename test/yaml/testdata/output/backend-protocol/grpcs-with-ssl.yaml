@@ -62,6 +62,7 @@ spec:
       group: ""
       kind: Secret
       name: grpc-client-cert
+      namespace: namespace1
     insecureSkipVerify: false
     sni: grpc.backend.svc.cluster.local
 status: {}

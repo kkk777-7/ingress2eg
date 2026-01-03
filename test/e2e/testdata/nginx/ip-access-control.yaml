@@ -1,0 +1,65 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whitelist-allow
+  namespace: ingress2eg
+  annotations:
+    # Allow all IPs (permissive for testing)
+    nginx.ingress.kubernetes.io/whitelist-source-range: "0.0.0.0/0"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: whitelist-allow.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whitelist-deny
+  namespace: ingress2eg
+  annotations:
+    # Only allow TEST-NET range (will deny our requests)
+    nginx.ingress.kubernetes.io/whitelist-source-range: "192.0.2.0/24"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: whitelist-deny.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: denylist-block
+  namespace: ingress2eg
+  annotations:
+    # Deny TEST-NET range (won't affect our requests)
+    nginx.ingress.kubernetes.io/denylist-source-range: "192.0.2.0/24"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: denylist-block.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080

@@ -84,7 +84,7 @@ metadata:
   namespace: production
 spec:
   retry:
-    numRetries: 3
+    numRetries: 2
     retryOn:
       httpStatusCodes:
       - 502
@@ -113,7 +113,7 @@ metadata:
   namespace: production
 spec:
   retry:
-    numRetries: 2
+    numRetries: 1
     retryOn:
       triggers:
       - connect-failure

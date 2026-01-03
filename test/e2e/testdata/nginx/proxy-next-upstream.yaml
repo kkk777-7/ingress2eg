@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proxy-next-upstream
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-next-upstream: "error timeout http_500 http_502 http_503"
+    nginx.ingress.kubernetes.io/proxy-next-upstream-tries: "3"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: retry.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: error-backend
+            port:
+              number: 8080

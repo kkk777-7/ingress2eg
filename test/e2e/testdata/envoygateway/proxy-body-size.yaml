@@ -1,13 +1,15 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
   name: nginx
-  namespace: namespace1
+  namespace: ingress2eg
 spec:
   gatewayClassName: eg
   listeners:
-  - hostname: example.com
-    name: example-com-http
+  - hostname: body-size.example.com
+    name: body-size-example-com-http
     port: 80
     protocol: HTTP
 status: {}
@@ -15,17 +17,19 @@ status: {}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: buffer-ingress-example-com
-  namespace: namespace1
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: proxy-body-size-body-size-example-com
+  namespace: ingress2eg
 spec:
   hostnames:
-  - example.com
+  - body-size.example.com
   parentRefs:
   - name: nginx
   rules:
   - backendRefs:
-    - name: service-ingress1
-      port: 80
+    - name: echo-server
+      port: 8080
     matches:
     - path:
         type: PathPrefix
@@ -37,14 +41,16 @@ status:
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: BackendTrafficPolicy
 metadata:
-  name: buffer-ingress-example-com
-  namespace: namespace1
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: proxy-body-size-body-size-example-com
+  namespace: ingress2eg
 spec:
   requestBuffer:
-    limit: 10m
+    limit: 1k
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
-    name: buffer-ingress-example-com
+    name: proxy-body-size-body-size-example-com
 status:
   ancestors: null

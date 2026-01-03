@@ -17,7 +17,6 @@ import (
 
 const (
 	rewriteAnnotation = "nginx.ingress.kubernetes.io/rewrite-target"
-	appRootAnnotation = "nginx.ingress.kubernetes.io/app-root"
 )
 
 func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName]map[string]int32, pir *providerir.ProviderIR, eir *emitterir.EmitterIR) field.ErrorList {
@@ -71,23 +70,6 @@ func rewriteFeature(ingresses []networkingv1.Ingress, _ map[types.NamespacedName
 						ingressesWithRewrite[ingressNN] = sets.New[string]()
 					}
 					ingressesWithRewrite[ingressNN].Insert("rewrite-target")
-				}
-
-				if val := ingress.Annotations[appRootAnnotation]; val != "" {
-					rewriteIR := getOrCreateRewriteIR(&emitterHTTPRouteContext, ruleIdx)
-					rewriteIR.Target = val
-
-					source := &emitterir.ExtensionFeatureSource{
-						IngressNN:     types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name},
-						AnnotationKey: []string{appRootAnnotation},
-					}
-					rewriteIR.SetSource(source)
-
-					ingressNN := types.NamespacedName{Namespace: ingress.Namespace, Name: ingress.Name}
-					if ingressesWithRewrite[ingressNN] == nil {
-						ingressesWithRewrite[ingressNN] = sets.New[string]()
-					}
-					ingressesWithRewrite[ingressNN].Insert("app-root")
 				}
 			}
 		}

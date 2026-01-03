@@ -1,13 +1,15 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
   name: nginx
-  namespace: namespace1
+  namespace: ingress2eg
 spec:
   gatewayClassName: eg
   listeners:
-  - hostname: example.com
-    name: example-com-http
+  - hostname: retry.example.com
+    name: retry-example-com-http
     port: 80
     protocol: HTTP
 status: {}
@@ -15,35 +17,40 @@ status: {}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: retry-ingress-example-com
-  namespace: namespace1
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: proxy-next-upstream-retry-example-com
+  namespace: ingress2eg
 spec:
   hostnames:
-  - example.com
+  - retry.example.com
   parentRefs:
   - name: nginx
   rules:
   - backendRefs:
-    - name: api-service
-      port: 80
+    - name: error-backend
+      port: 8080
     matches:
     - path:
         type: PathPrefix
-        value: /api
-    name: rule-0-prefix-api
+        value: /
+    name: rule-0-prefix-root
 status:
   parents: []
 ---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: BackendTrafficPolicy
 metadata:
-  name: retry-ingress-example-com
-  namespace: namespace1
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: proxy-next-upstream-retry-example-com
+  namespace: ingress2eg
 spec:
   retry:
     numRetries: 2
     retryOn:
       httpStatusCodes:
+      - 500
       - 502
       - 503
       triggers:
@@ -55,6 +62,6 @@ spec:
   targetRefs:
   - group: gateway.networking.k8s.io
     kind: HTTPRoute
-    name: retry-ingress-example-com
+    name: proxy-next-upstream-retry-example-com
 status:
   ancestors: null

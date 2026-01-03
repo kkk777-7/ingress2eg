@@ -1,0 +1,43 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: nginx
+  namespace: ingress2eg
+spec:
+  gatewayClassName: eg
+  listeners:
+  - hostname: vhost.example.com
+    name: vhost-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: upstream-vhost-vhost-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - vhost.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: echo-server
+      port: 8080
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        hostname: internal.backend.svc.cluster.local
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []

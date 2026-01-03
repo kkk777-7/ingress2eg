@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rewrite-target
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /rewritten$1$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: rewrite.example.com
+    http:
+      paths:
+      - path: /test(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080

@@ -1,0 +1,152 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: nginx
+  namespace: ingress2eg
+spec:
+  gatewayClassName: eg
+  listeners:
+  - hostname: ssl-redirect.example.com
+    name: ssl-redirect-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: ssl-redirect.example.com
+    name: ssl-redirect-example-com-https
+    port: 443
+    protocol: HTTPS
+    tls:
+      certificateRefs:
+      - kind: Secret
+        name: ssl-redirect-tls
+      mode: Terminate
+  - hostname: force-ssl-redirect.example.com
+    name: force-ssl-redirect-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: permanent-redirect.example.com
+    name: permanent-redirect-example-com-http
+    port: 80
+    protocol: HTTP
+  - hostname: temporal-redirect.example.com
+    name: temporal-redirect-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: redirect-ssl-ssl-redirect-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - ssl-redirect.example.com
+  parentRefs:
+  - name: nginx
+    sectionName: ssl-redirect-example-com-http
+  rules:
+  - filters:
+    - requestRedirect:
+        scheme: https
+        statusCode: 301
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: redirect-force-ssl-force-ssl-redirect-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - force-ssl-redirect.example.com
+  parentRefs:
+  - name: nginx
+    sectionName: force-ssl-redirect-example-com-http
+  rules:
+  - filters:
+    - requestRedirect:
+        scheme: https
+        statusCode: 301
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: redirect-permanent-permanent-redirect-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - permanent-redirect.example.com
+  parentRefs:
+  - name: nginx
+    sectionName: permanent-redirect-example-com-http
+  rules:
+  - filters:
+    - requestRedirect:
+        hostname: permanent.example.com
+        path:
+          replaceFullPath: /new-path
+          type: ReplaceFullPath
+        scheme: https
+        statusCode: 301
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: redirect-temporal-temporal-redirect-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - temporal-redirect.example.com
+  parentRefs:
+  - name: nginx
+    sectionName: temporal-redirect-example-com-http
+  rules:
+  - filters:
+    - requestRedirect:
+        hostname: temporal.example.com
+        path:
+          replaceFullPath: /temp-path
+          type: ReplaceFullPath
+        scheme: https
+        statusCode: 302
+      type: RequestRedirect
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []

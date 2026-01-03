@@ -63,6 +63,7 @@ spec:
       group: ""
       kind: Secret
       name: client-cert1
+      namespace: namespace1
     sni: backend1.example.com
 status: {}
 ---
@@ -85,5 +86,6 @@ spec:
       group: ""
       kind: Secret
       name: client-cert2
+      namespace: namespace1
     sni: backend2.example.com
 status: {}

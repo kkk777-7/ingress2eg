@@ -41,7 +41,7 @@ metadata:
   namespace: namespace1
 spec:
   retry:
-    numRetries: 5
+    numRetries: 4
     retryOn:
       httpStatusCodes:
       - 429
