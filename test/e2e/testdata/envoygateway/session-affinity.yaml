@@ -1,0 +1,63 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: nginx
+  namespace: ingress2eg
+spec:
+  gatewayClassName: eg
+  listeners:
+  - hostname: session.example.com
+    name: session-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: session-affinity-session-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - session.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: echo-server
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: BackendTrafficPolicy
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: session-affinity-session-example-com
+  namespace: ingress2eg
+spec:
+  loadBalancer:
+    consistentHash:
+      cookie:
+        attributes:
+          SameSite: Lax
+        name: test-cookie
+        ttl: 3600s
+      type: Cookie
+    type: ConsistentHash
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: session-affinity-session-example-com
+status:
+  ancestors: null
