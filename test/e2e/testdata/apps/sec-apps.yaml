@@ -68,9 +68,13 @@ data:
         server {
             listen 8443 ssl;
             server_name nginx-tls.ingress2eg.svc.cluster.local passthrough.example.com;
-            
+
             ssl_certificate /etc/nginx/ssl/tls.crt;
             ssl_certificate_key /etc/nginx/ssl/tls.key;
+
+            # Enable mTLS - require client certificates
+            ssl_client_certificate /etc/nginx/ssl/ca.crt;
+            ssl_verify_client on;
             
             location / {
                 default_type application/json;
@@ -125,8 +129,20 @@ spec:
         configMap:
           name: nginx-tls-config
       - name: tls-certs
-        secret:
-          secretName: nginx-tls-server-secret
+        projected:
+          sources:
+          - secret:
+              name: nginx-tls-server-secret
+              items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+          - secret:
+              name: nginx-tls-ca-secret
+              items:
+              - key: tls.crt
+                path: ca.crt
 ---
 apiVersion: v1
 kind: Service

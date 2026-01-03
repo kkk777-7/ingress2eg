@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: proxy-ssl
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-ssl-secret: "ingress2eg/backend-client-cert"
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: "true"
+    nginx.ingress.kubernetes.io/proxy-ssl-name: "nginx-tls.ingress2eg.svc.cluster.local"
+    nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: proxy-ssl.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-tls
+            port:
+              number: 8443
