@@ -144,9 +144,10 @@ func (e *Emitter) configureBackendTLS(backend *egapiv1a1.Backend, backendTLSIR *
 	backend.Spec.TLS.CACertificateRefs = []gwapiv1.LocalObjectReference{backendTLSIR.CertificateRef}
 	backend.Spec.TLS.BackendTLSConfig = &egapiv1a1.BackendTLSConfig{
 		ClientCertificateRef: &gwapiv1.SecretObjectReference{
-			Group: ptr.To(gwapiv1.Group(SecretGVK.Group)),
-			Kind:  ptr.To(gwapiv1.Kind(SecretGVK.Kind)),
-			Name:  backendTLSIR.CertificateRef.Name,
+			Group:     ptr.To(gwapiv1.Group(SecretGVK.Group)),
+			Kind:      ptr.To(gwapiv1.Kind(SecretGVK.Kind)),
+			Name:      backendTLSIR.CertificateRef.Name,
+			Namespace: ptr.To(gwapiv1.Namespace(backend.Namespace)),
 		},
 	}
 	if backendTLSIR.Sni != "" {
