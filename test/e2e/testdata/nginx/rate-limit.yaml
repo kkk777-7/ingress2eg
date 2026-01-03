@@ -1,0 +1,41 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rate-limit-rps
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "2"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: rps.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rate-limit-rpm
+  namespace: ingress2eg
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rpm: "2"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: rpm.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echo-server
+            port:
+              number: 8080
