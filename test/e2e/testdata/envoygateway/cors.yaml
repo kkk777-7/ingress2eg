@@ -1,0 +1,77 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: nginx
+  namespace: ingress2eg
+spec:
+  gatewayClassName: eg
+  listeners:
+  - hostname: cors.example.com
+    name: cors-example-com-http
+    port: 80
+    protocol: HTTP
+status: {}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: cors-cors-example-com
+  namespace: ingress2eg
+spec:
+  hostnames:
+  - cors.example.com
+  parentRefs:
+  - name: nginx
+  rules:
+  - backendRefs:
+    - name: echo-server
+      port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /
+    name: rule-0-prefix-root
+status:
+  parents: []
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  annotations:
+    gateway.networking.k8s.io/generator: ingress2eg-dev
+  name: cors-cors-example-com
+  namespace: ingress2eg
+spec:
+  cors:
+    allowCredentials: true
+    allowHeaders:
+    - X-CustomHeader
+    - Keep-Alive
+    - User-Agent
+    - X-Requested-With
+    - If-Modified-Since
+    - Cache-Control
+    - Content-Type
+    - Authorization
+    allowMethods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    allowOrigins:
+    - https://example.com
+    - https://test.com
+    exposeHeaders:
+    - Content-Length
+    - X-Custom-Response
+    maxAge: 3600s
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: cors-cors-example-com
+status:
+  ancestors: null
