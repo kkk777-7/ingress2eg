@@ -184,7 +184,9 @@ func Test_ToIR(t *testing.T) {
 									Hostname: ptr.To(gwapiv1.Hostname("example.com")),
 									TLS: &gwapiv1.ListenerTLSConfig{
 										CertificateRefs: []gwapiv1.SecretObjectReference{{
-											Name: "example-cert",
+											Group: ptr.To(gwapiv1.Group("")),
+											Kind:  ptr.To(gwapiv1.Kind("Secret")),
+											Name:  "example-cert",
 										}},
 									},
 								}},

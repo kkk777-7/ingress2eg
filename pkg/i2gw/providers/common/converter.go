@@ -236,7 +236,11 @@ func (a *ingressAggregator) toHTTPRoutesAndGateways(options i2gw.ProviderImpleme
 		}
 		for _, tls := range rg.tls {
 			listener.TLS.CertificateRefs = append(listener.TLS.CertificateRefs,
-				gwapiv1.SecretObjectReference{Name: gwapiv1.ObjectName(tls.SecretName)})
+				gwapiv1.SecretObjectReference{
+					Group: ptr.To(gwapiv1.Group("")),
+					Kind:  ptr.To(gwapiv1.Kind("Secret")),
+					Name:  gwapiv1.ObjectName(tls.SecretName),
+				})
 		}
 		gwKey := fmt.Sprintf("%s/%s", rg.namespace, rg.ingressClass)
 		listenersByNamespacedGateway[gwKey] = append(listenersByNamespacedGateway[gwKey], listener)

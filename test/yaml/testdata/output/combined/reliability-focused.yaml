@@ -16,8 +16,8 @@ spec:
     protocol: HTTPS
     tls:
       certificateRefs:
-      - group: null
-        kind: null
+      - group: ""
+        kind: Secret
         name: reliable-api-tls
   - hostname: upload.example.com
     name: upload-example-com-http
